@@ -1,0 +1,10 @@
+# Java compiled files
+bin/
+*.class
+
+# Local save game
+data/savegame.txt
+
+# OS files
+.DS_Store
+Thumbs.db
