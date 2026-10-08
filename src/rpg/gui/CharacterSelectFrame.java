@@ -1,22 +1,21 @@
 package rpg.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 
 import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 
 import rpg.game.Game;
 import rpg.model.character.player.Archer;
@@ -24,469 +23,149 @@ import rpg.model.character.player.Knight;
 import rpg.model.character.player.Mage;
 import rpg.model.character.player.Player;
 
+/** Step 49.2: Pixel-themed class selection, preserving existing game logic. */
 public class CharacterSelectFrame extends JFrame {
 
-    private Game game;
-    private JFrame previousFrame;
+    private final Game game;
+    private final JFrame previousFrame;
 
     private JTextField nameField;
-
-    private JRadioButton knightButton;
-    private JRadioButton archerButton;
-    private JRadioButton mageButton;
-
-    private JLabel classLabel;
-    private JLabel hpLabel;
-    private JLabel mpLabel;
-    private JLabel attackLabel;
-    private JLabel defenseLabel;
-    private JLabel skillLabel;
-
+    private HeroClassCard knightCard;
+    private HeroClassCard archerCard;
+    private HeroClassCard mageCard;
     private JButton startButton;
     private JButton backButton;
+    private String selectedClass = "Knight";
 
-    private String selectedClass;
-
-    public CharacterSelectFrame(
-            Game game,
-            JFrame previousFrame) {
-
+    public CharacterSelectFrame(Game game, JFrame previousFrame) {
         this.game = game;
         this.previousFrame = previousFrame;
 
-        this.selectedClass = "Knight";
-
         initializeFrame();
-        createComponents();
         createLayout();
         registerEvents();
-
-        updateClassInfo("Knight");
+        selectClass("Knight");
     }
-
-    // -------------------------
-    // Frame Setup
-    // -------------------------
 
     private void initializeFrame() {
-
-        setTitle("Create Character");
-
-        setDefaultCloseOperation(
-                JFrame.EXIT_ON_CLOSE
-        );
-
-        setSize(600, 520);
-
-        setMinimumSize(
-                new Dimension(600, 520)
-        );
-
-        setLocationRelativeTo(null);
-
+        setTitle("Hero's Journey - Choose Your Hero");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(750, 520);
+        setMinimumSize(new Dimension(750, 520));
         setResizable(false);
+        setLocationRelativeTo(null);
     }
 
-    // -------------------------
-    // Components
-    // -------------------------
-
-    private void createComponents() {
-
-        nameField = new JTextField();
-
-        knightButton =
-                new JRadioButton(
-                        "Knight",
-                        true
-                );
-
-        archerButton =
-                new JRadioButton(
-                        "Archer"
-                );
-
-        mageButton =
-                new JRadioButton(
-                        "Mage"
-                );
-
-        ButtonGroup classGroup =
-                new ButtonGroup();
-
-        classGroup.add(knightButton);
-        classGroup.add(archerButton);
-        classGroup.add(mageButton);
-
-        classLabel = new JLabel();
-        hpLabel = new JLabel();
-        mpLabel = new JLabel();
-        attackLabel = new JLabel();
-        defenseLabel = new JLabel();
-        skillLabel = new JLabel();
-
-        startButton =
-                new JButton("Start Game");
-
-        backButton =
-                new JButton("Back");
+    private JLabel createLabel(String text, int size, Color color) {
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setFont(new Font("Monospaced", Font.BOLD, size));
+        label.setForeground(color);
+        label.setAlignmentX(CENTER_ALIGNMENT);
+        return label;
     }
-
-    // -------------------------
-    // Layout
-    // -------------------------
 
     private void createLayout() {
+        JPanel background = GameTheme.createBackdrop();
+        background.setLayout(new BorderLayout(0, 13));
+        background.setBorder(BorderFactory.createEmptyBorder(18, 32, 20, 32));
+        setContentPane(background);
 
-        setLayout(
-                new BorderLayout()
-        );
+        JPanel header = new JPanel();
+        header.setOpaque(false);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.add(createLabel("CHOOSE YOUR HERO", 27, GameTheme.GOLD));
+        header.add(Box.createVerticalStrut(5));
+        header.add(createLabel("THREE PATHS. ONE JOURNEY.", 12, GameTheme.MUTED));
+        background.add(header, BorderLayout.NORTH);
 
-        // Title
-        JLabel titleLabel =
-                new JLabel(
-                        "CREATE CHARACTER",
-                        SwingConstants.CENTER
-                );
+        JPanel cards = new JPanel(new GridLayout(1, 3, 13, 0));
+        cards.setOpaque(false);
+        knightCard = new HeroClassCard("Knight", new Knight("Preview"),
+                new Color(151, 192, 231), () -> selectClass("Knight"));
+        archerCard = new HeroClassCard("Archer", new Archer("Preview"),
+                new Color(126, 216, 153), () -> selectClass("Archer"));
+        mageCard = new HeroClassCard("Mage", new Mage("Preview"),
+                new Color(192, 154, 247), () -> selectClass("Mage"));
+        cards.add(knightCard);
+        cards.add(archerCard);
+        cards.add(mageCard);
+        background.add(cards, BorderLayout.CENTER);
 
-        titleLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        26
-                )
-        );
+        JPanel footer = new JPanel(new BorderLayout(0, 10));
+        footer.setOpaque(false);
 
-        titleLabel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        30,
-                        20,
-                        20,
-                        20
-                )
-        );
+        JPanel nameRow = new JPanel(new BorderLayout(12, 0));
+        nameRow.setOpaque(false);
+        JLabel nameLabel = createLabel("HERO NAME", 13, GameTheme.TEXT);
+        nameRow.add(nameLabel, BorderLayout.WEST);
+        nameField = new JTextField();
+        nameField.setFont(new Font("Monospaced", Font.BOLD, 15));
+        nameField.setForeground(GameTheme.TEXT);
+        nameField.setCaretColor(GameTheme.GOLD);
+        nameField.setBackground(GameTheme.PANEL);
+        nameField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+        nameField.setPreferredSize(new Dimension(0, 36));
+        nameRow.add(nameField, BorderLayout.CENTER);
+        footer.add(nameRow, BorderLayout.NORTH);
 
-        // Main Content
-        JPanel contentPanel = new JPanel();
-
-        contentPanel.setLayout(
-                new BoxLayout(
-                        contentPanel,
-                        BoxLayout.Y_AXIS
-                )
-        );
-
-        contentPanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        10,
-                        80,
-                        10,
-                        80
-                )
-        );
-
-        // Name
-        JPanel namePanel =
-                new JPanel(
-                        new BorderLayout(
-                                10,
-                                0
-                        )
-                );
-
-        namePanel.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        45
-                )
-        );
-
-        namePanel.add(
-                new JLabel("Name:"),
-                BorderLayout.WEST
-        );
-
-        namePanel.add(
-                nameField,
-                BorderLayout.CENTER
-        );
-
-        // Class Selection
-        JPanel classPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                3,
-                                10,
-                                0
-                        )
-                );
-
-        classPanel.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        80
-                )
-        );
-
-        classPanel.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Choose Class"
-                )
-        );
-
-        classPanel.add(knightButton);
-        classPanel.add(archerButton);
-        classPanel.add(mageButton);
-
-        // Class Information
-        JPanel infoPanel =
-                new JPanel(
-                        new GridLayout(
-                                6,
-                                1,
-                                0,
-                                6
-                        )
-                );
-
-        infoPanel.setPreferredSize(
-            new Dimension(400, 180)
-        );
-
-        infoPanel.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        180
-                )
-        );
-
-        infoPanel.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Class Information"
-                )
-        );
-
-        infoPanel.add(classLabel);
-        infoPanel.add(hpLabel);
-        infoPanel.add(mpLabel);
-        infoPanel.add(attackLabel);
-        infoPanel.add(defenseLabel);
-        infoPanel.add(skillLabel);
-
-        // Buttons
-        JPanel buttonPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                2,
-                                15,
-                                0
-                        )
-                );
-
-        buttonPanel.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        50
-                )
-        );                
-
-        buttonPanel.add(backButton);
-        buttonPanel.add(startButton);
-
-        contentPanel.add(namePanel);
-
-        contentPanel.add(
-                Box.createVerticalStrut(15)
-        );
-
-        contentPanel.add(classPanel);
-
-        contentPanel.add(
-                Box.createVerticalStrut(15)
-        );
-
-        contentPanel.add(infoPanel);
-
-        contentPanel.add(
-                Box.createVerticalStrut(20)
-        );
-
-        contentPanel.add(buttonPanel);
-
-        add(
-                titleLabel,
-                BorderLayout.NORTH
-        );
-
-        add(
-                contentPanel,
-                BorderLayout.CENTER
-        );
+        JPanel buttons = new JPanel(new GridLayout(1, 2, 13, 0));
+        buttons.setOpaque(false);
+        backButton = new JButton("Back");
+        startButton = new JButton("Start Game");
+        GameTheme.styleButton(backButton, false);
+        GameTheme.styleButton(startButton, true);
+        // Width follows the two-column layout, keeping the shared theme.
+        buttons.add(backButton);
+        buttons.add(startButton);
+        footer.add(buttons, BorderLayout.CENTER);
+        background.add(footer, BorderLayout.SOUTH);
     }
-
-    // -------------------------
-    // Events
-    // -------------------------
 
     private void registerEvents() {
-
-        knightButton.addActionListener(
-                e -> selectClass("Knight")
-        );
-
-        archerButton.addActionListener(
-                e -> selectClass("Archer")
-        );
-
-        mageButton.addActionListener(
-                e -> selectClass("Mage")
-        );
-
-        startButton.addActionListener(
-                e -> startGame()
-        );
-
-        backButton.addActionListener(
-                e -> goBack()
-        );
+        startButton.addActionListener(e -> startGame());
+        backButton.addActionListener(e -> goBack());
+        nameField.addActionListener(e -> startGame());
     }
 
-    // -------------------------
-    // Class Selection
-    // -------------------------
-
-    private void selectClass(
-            String playerClass) {
-
+    private void selectClass(String playerClass) {
         selectedClass = playerClass;
-
-        updateClassInfo(playerClass);
+        knightCard.setChosen("Knight".equals(playerClass));
+        archerCard.setChosen("Archer".equals(playerClass));
+        mageCard.setChosen("Mage".equals(playerClass));
     }
-
-    private void updateClassInfo(
-            String playerClass) {
-
-        Player previewPlayer;
-
-        if (playerClass.equals("Knight")) {
-
-            previewPlayer =
-                    new Knight("Preview");
-
-        } else if (playerClass.equals("Archer")) {
-
-            previewPlayer =
-                    new Archer("Preview");
-
-        } else {
-
-            previewPlayer =
-                    new Mage("Preview");
-        }
-
-        classLabel.setText(
-                "Class: "
-                        + playerClass
-        );
-
-        hpLabel.setText(
-                "HP: "
-                        + previewPlayer.getMaxHp()
-        );
-
-        mpLabel.setText(
-                "MP: "
-                        + previewPlayer.getMaxMp()
-        );
-
-        attackLabel.setText(
-                "Attack: "
-                        + previewPlayer.getAttack()
-        );
-
-        defenseLabel.setText(
-                "Defense: "
-                        + previewPlayer.getDefense()
-        );
-
-        skillLabel.setText(
-                "Skill: "
-                        + previewPlayer.getSkillName()
-        );
-    }
-
-    // -------------------------
-    // Start Game
-    // -------------------------
 
     private void startGame() {
-
-        String playerName =
-                nameField.getText().trim();
-
+        String playerName = nameField.getText().trim();
         if (playerName.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
+            JOptionPane.showMessageDialog(this,
                     "Please enter your character name.",
-                    "Invalid Name",
-                    JOptionPane.WARNING_MESSAGE
-            );
-
+                    "Invalid Name", JOptionPane.WARNING_MESSAGE);
+            nameField.requestFocusInWindow();
             return;
         }
 
-        game.startNewGame(
-                playerName,
-                selectedClass
-        );
+        // Preserve the original character creation and game navigation.
+        game.startNewGame(playerName, selectedClass);
+        Player player = game.getPlayer();
 
-        Player player =
-                game.getPlayer();
-
-        JOptionPane.showMessageDialog(
-                this,
+        JOptionPane.showMessageDialog(this,
                 "Character created!\n\n"
-                        + "Name: "
-                        + player.getName()
-                        + "\nClass: "
-                        + player.getClass()
-                                .getSimpleName()
-                        + "\nHP: "
-                        + player.getHp()
-                        + "/"
-                        + player.getMaxHp()
-                        + "\nMP: "
-                        + player.getMp()
-                        + "/"
-                        + player.getMaxMp()
-                        + "\nSkill: "
-                        + player.getSkillName(),
-                "New Game",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+                + "Name: " + player.getName()
+                + "\nClass: " + player.getClass().getSimpleName()
+                + "\nHP: " + player.getHp() + "/" + player.getMaxHp()
+                + "\nMP: " + player.getMp() + "/" + player.getMaxMp()
+                + "\nSkill: " + player.getSkillName(),
+                "New Game", JOptionPane.INFORMATION_MESSAGE);
 
-        GameFrame gameFrame =
-                new GameFrame(
-                        game,
-                        previousFrame
-                );
-
+        GameFrame gameFrame = new GameFrame(game, previousFrame);
         gameFrame.setVisible(true);
-
         dispose();
     }
 
-    // -------------------------
-    // Back
-    // -------------------------
-
     private void goBack() {
-
         previousFrame.setVisible(true);
-
         dispose();
     }
 }
