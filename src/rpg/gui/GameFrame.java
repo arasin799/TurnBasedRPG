@@ -43,6 +43,7 @@ public class GameFrame extends JFrame {
     private JLabel monsterLabel;
 
     private JButton battleButton;
+    private JButton selectStageButton;
     private JButton inventoryButton;
     private JButton shopButton;
     private JButton saveButton;
@@ -52,12 +53,19 @@ public class GameFrame extends JFrame {
     private JPanel centerPanel;
     private JPanel hubPanel;
 
+    // Remove old battle panels before showing a new challenge.
+    private BattlePanel activeBattlePanel;
+
+    // Stage selected on the hub; does not change unlocked progress.
+    private int selectedStage;
+
     public GameFrame(
             Game game,
             JFrame mainMenuFrame) {
 
         this.game = game;
         this.mainMenuFrame = mainMenuFrame;
+        this.selectedStage = Math.min(game.getStage(), game.getStageCount() - 1);
 
         initializeFrame();
         createComponents();
@@ -119,6 +127,9 @@ public class GameFrame extends JFrame {
 
         battleButton =
                 new JButton("Battle");
+
+        selectStageButton =
+                new JButton("Select Stage");
 
         inventoryButton =
                 new JButton("Inventory");
@@ -263,13 +274,14 @@ public class GameFrame extends JFrame {
                 new JPanel(
                         new GridLayout(
                                 1,
-                                4,
+                                5,
                                 10,
                                 0
                         )
                 );
 
         actionPanel.add(battleButton);
+        actionPanel.add(selectStageButton);
         actionPanel.add(inventoryButton);
         actionPanel.add(shopButton);
         actionPanel.add(saveButton);
@@ -329,6 +341,10 @@ public class GameFrame extends JFrame {
 
         battleButton.addActionListener(
                 e -> openBattle()
+        );
+
+        selectStageButton.addActionListener(
+                e -> selectStage()
         );
 
         inventoryButton.addActionListener(
@@ -413,32 +429,18 @@ public class GameFrame extends JFrame {
                         + player.getExpToNextLevel()
         );
 
-        if (game.isGameCompleted()) {
-
-            stageLabel.setText(
-                    "GAME COMPLETED"
-            );
-
-            monsterLabel.setText(
-                    "Dark Mage has been defeated!"
-            );
-
-            battleButton.setEnabled(false);
-
-        } else {
-
-            stageLabel.setText(
-                    "Stage "
-                            + (game.getStage() + 1)
-            );
-
-            monsterLabel.setText(
-                    "Next Enemy: "
-                            + game.getCurrentMonsterName()
-            );
-
-            battleButton.setEnabled(player.isAlive());
+        int unlockedCount = game.getUnlockedStageCount();
+        if (selectedStage < 0 || selectedStage >= unlockedCount) {
+            selectedStage = unlockedCount - 1;
         }
+
+        stageLabel.setText("Selected Stage " + (selectedStage + 1));
+        String status = selectedStage < game.getStage()
+                ? " [Cleared - Replay]" : " [New]";
+        monsterLabel.setText("Enemy: " + game.getStageName(selectedStage) + status);
+
+        battleButton.setEnabled(player.isAlive());
+        selectStageButton.setEnabled(player.isAlive());
     }
 
     // -------------------------
@@ -449,71 +451,134 @@ public class GameFrame extends JFrame {
             boolean enabled) {
 
         battleButton.setEnabled(enabled);
+        selectStageButton.setEnabled(enabled);
         inventoryButton.setEnabled(enabled);
         shopButton.setEnabled(enabled);
         saveButton.setEnabled(enabled);
         mainMenuButton.setEnabled(enabled);
     }
 
+    // Start the stage previously selected on the hub.
     private void openBattle() {
+        openBattleAtStage(selectedStage);
+    }
 
+    // Choose a stage without immediately entering combat.
+    private void selectStage() {
+        int unlockedCount = game.getUnlockedStageCount();
+        String[] choices = new String[unlockedCount];
+
+        for (int i = 0; i < unlockedCount; i++) {
+            String status = i < game.getStage() ? " [Cleared]" : " [New]";
+            choices[i] = "Stage " + (i + 1) + " - "
+                    + game.getStageName(i) + status;
+        }
+
+        String selected = (String) JOptionPane.showInputDialog(
+                this,
+                "Choose a stage (press Battle to start):",
+                "Select Stage",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                choices,
+                choices[selectedStage]
+        );
+
+        if (selected == null) {
+            return;
+        }
+
+        for (int i = 0; i < choices.length; i++) {
+            if (choices[i].equals(selected)) {
+                selectedStage = i;
+                refreshGameInfo();
+                return;
+            }
+        }
+    }
+
+    private void openBattleAtStage(int stageIndex) {
         try {
+            BattleManager battle = game.startBattle(stageIndex);
+            selectedStage = stageIndex;
 
-            BattleManager battle =
-                    game.startBattle();
+            if (activeBattlePanel != null) {
+                centerPanel.remove(activeBattlePanel);
+            }
 
-            BattlePanel battlePanel =
-                    new BattlePanel(
-                            game,
-                            this,
-                            battle
-                    );
-
-            centerPanel.add(
-                    battlePanel,
-                    "BATTLE"
-            );
-
-            centerLayout.show(
-                    centerPanel,
-                    "BATTLE"
-            );
-
+            activeBattlePanel = new BattlePanel(game, this, battle);
+            centerPanel.add(activeBattlePanel, "BATTLE");
+            centerLayout.show(centerPanel, "BATTLE");
+            centerPanel.revalidate();
+            centerPanel.repaint();
             setNavigationEnabled(false);
-
         } catch (IllegalStateException e) {
-
             JOptionPane.showMessageDialog(
-                    this,
-                    e.getMessage(),
-                    "Battle Error",
+                    this, e.getMessage(), "Battle Error",
                     JOptionPane.ERROR_MESSAGE
             );
         }
     }
 
     public void finishCurrentBattle() {
+        BattleManager battle = game.getCurrentBattle();
+        if (battle == null || !battle.isBattleOver()) {
+            return;
+        }
+
+        // Capture before finishBattle() resets the current battle.
+        int completedStage = game.getCurrentBattleStage();
+        boolean victory = battle.isVictory();
+        boolean defeat = battle.isDefeat();
+        String monsterName = battle.getMonster().getName();
 
         game.finishBattle();
-
         refreshGameInfo();
 
-        // Final Boss defeated
-        if (game.isGameCompleted()) {
-
-            showGameResult(true);
-            return;
-        }
-
-        // Player defeated
-        if (!game.getPlayer().isAlive()) {
-
+        if (victory) {
+            showVictoryChoices(completedStage, monsterName);
+        } else if (defeat) {
             showGameResult(false);
-            return;
+        } else {
+            // Escaped: unlocked progress does not change.
+            showHub();
         }
+    }
 
-        // Normal victory or escape
-        showHub();
+    private void showVictoryChoices(int completedStage, String monsterName) {
+        boolean hasNextStage = completedStage + 1 < game.getStageCount()
+                && completedStage + 1 <= game.getStage();
+
+        String[] choices = hasNextStage
+                ? new String[] {"Restart Challenge", "Next Stage", "Stage Select"}
+                : new String[] {"Restart Challenge", "Stage Select", "View Ending"};
+
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Victory! " + monsterName + " defeated!"
+                        + "\nEXP, Gold and any dropped item have been awarded."
+                        + "\nWhat would you like to do next?",
+                "Stage " + (completedStage + 1) + " Cleared",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                choices,
+                choices[1]
+        );
+
+        if (choice == 0) {
+            openBattleAtStage(completedStage);
+        } else if (hasNextStage && choice == 1) {
+            openBattleAtStage(completedStage + 1);
+        } else if (!hasNextStage && choice == 2) {
+            showGameResult(true);
+        } else {
+            showHub();
+            // Stage Select opens the list immediately. Cancel returns to Hub.
+            if (choice == 2 || (!hasNextStage && choice == 1)) {
+                selectStage();
+            }
+        }
     }
 
     private void showGameResult(
@@ -573,6 +638,8 @@ public class GameFrame extends JFrame {
         );
 
         setNavigationEnabled(true);
+        battleButton.setEnabled(game.getPlayer().isAlive());
+        selectStageButton.setEnabled(game.getPlayer().isAlive());
     }    
 
     // -------------------------
