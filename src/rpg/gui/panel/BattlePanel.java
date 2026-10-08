@@ -337,6 +337,9 @@ public class BattlePanel extends JPanel {
                 ? "STUNNED - NEXT ACTION SKIPPED" : "");
         setBar(playerHpBar, player.getHp(), player.getMaxHp(), "HP");
         setBar(playerMpBar, player.getMp(), player.getMaxMp(), "MP");
+        playerMpBar.setString("MP " + player.getMp() + "/" + player.getMaxMp()
+                + "   |   ULT " + player.getUltimateCharge()
+                + "/" + player.getMaxUltimateCharge());
         setBar(monsterHpBar, monster.getHp(), monster.getMaxHp(), "HP");
         skillButton.setText(player.getSkillName().toUpperCase());
         skillButton.setToolTipText("Spend MP to use " + player.getSkillName());

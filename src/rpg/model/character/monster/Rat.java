@@ -31,6 +31,12 @@ public class Rat extends Monster {
         );
     }
 
+    // Soul Shard drop chance from the design spreadsheet.
+    @Override
+    public double getSoulShardDropChance() {
+        return 0.03;
+    }
+
     @Override
     public Item generateDrop() {
 

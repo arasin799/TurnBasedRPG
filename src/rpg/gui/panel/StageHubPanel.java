@@ -118,6 +118,9 @@ public class StageHubPanel extends JPanel {
                 : "NEW STAGE  /  READY TO FIGHT", leftX, by + 139, 11, statusColor);
         text(g, "ENTER SHOP OR INVENTORY TO PREPARE", leftX,
                 by + 164, 10, GameTheme.MUTED);
+        text(g, "ULTIMATE CHARGE " + game.getPlayer().getUltimateCharge()
+                + "/" + game.getPlayer().getMaxUltimateCharge(),
+                leftX, by + 184, 11, GameTheme.GOLD);
 
         int spriteSize = Math.min(131, Math.max(65, bh - 64));
         int spriteX = bx + bw - spriteSize - 47;

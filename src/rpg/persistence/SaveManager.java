@@ -25,6 +25,7 @@ import rpg.model.item.ArmorType;
 import rpg.model.item.Weapon;
 import rpg.model.item.WeaponType;
 import rpg.model.item.Bomb;
+import rpg.model.item.SoulShard;
 
 public class SaveManager {
 
@@ -118,6 +119,11 @@ public class SaveManager {
             writer.newLine();
 
             writer.write(
+                    "ULTIMATE_CHARGE=" + player.getUltimateCharge()
+            );
+            writer.newLine();
+
+            writer.write(
                     "GOLD=" + player.getGold()
             );
             writer.newLine();
@@ -175,6 +181,7 @@ public class SaveManager {
         Integer mp = null;
         Integer gold = null;
         Integer stage = null;
+        int ultimateCharge = 0; // Older save files have no Ultimate charge.
 
         int weaponIndex = -1;
         int armorIndex = -1;
@@ -259,6 +266,10 @@ public class SaveManager {
                                 );
                         break;
 
+                    case "ULTIMATE_CHARGE":
+                        ultimateCharge = parseInteger(value, "ULTIMATE_CHARGE");
+                        break;
+
                     case "GOLD":
                         gold =
                                 parseInteger(
@@ -316,6 +327,10 @@ public class SaveManager {
             );
         }
 
+        if (ultimateCharge < 0 || ultimateCharge > 5) {
+            throw new InvalidSaveException("Invalid Ultimate charge in save file.");
+        }
+
         if (level < 1
                 || experience < 0
                 || gold < 0
@@ -339,6 +354,7 @@ public class SaveManager {
                 hp,
                 mp
         );
+        player.restoreUltimateCharge(ultimateCharge);
 
         // Restore Inventory
         for (String data : itemData) {
@@ -423,6 +439,10 @@ public class SaveManager {
         } else if (item instanceof ManaPotion) {
 
             return "MANA_POTION";
+
+        } else if (item instanceof SoulShard) {
+
+            return "SOUL_SHARD";
 
         } else if (item instanceof Bomb) {
 
@@ -514,6 +534,10 @@ public class SaveManager {
                 "MANA_POTION")) {
 
             return new ManaPotion();
+        }
+
+        if (value.equals("SOUL_SHARD")) {
+            return new SoulShard();
         }
 
         if (value.equals(

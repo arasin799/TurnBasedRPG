@@ -4,6 +4,7 @@ import rpg.model.character.player.Player;
 import rpg.model.character.monster.Monster;
 import rpg.model.item.Item;
 import rpg.model.item.BattleUsable;
+import rpg.model.item.SoulShard;
 import java.util.Random;
 import rpg.model.character.monster.MonsterSkillResult;
 
@@ -103,6 +104,9 @@ public class BattleManager {
         }
 
         int damage = player.attack(monster);
+        if (damage > 0) {
+            player.addUltimateCharge(1);
+        }
 
         String message =
                 player.getName()
@@ -144,6 +148,11 @@ public class BattleManager {
             return "Not enough MP to use "
                     + player.getSkillName()
                     + ".";
+        }
+
+        // A successful offensive skill also earns 1 Ultimate charge.
+        if (damage > 0) {
+            player.addUltimateCharge(1);
         }
 
         String message =
@@ -443,6 +452,13 @@ public class BattleManager {
             message += "\nItem dropped: "
                     + droppedItem.getName()
                     + "!";
+        }
+
+        // Soul Shard is an independent bonus drop; potions may also drop.
+        // Roll only once per defeated monster (handleVictory grants rewards once).
+        if (random.nextDouble() < monster.getSoulShardDropChance()) {
+            player.getInventory().addItem(new SoulShard());
+            message += "\nItem dropped: Soul Shard!";
         }
 
         if (player.getLevel() > oldLevel) {

@@ -57,6 +57,11 @@ public abstract class Monster extends Character {
         return goldReward;
     }
 
+    /** Override to specify independent Soul Shard drop chance (0.0 to 1.0). */
+    public double getSoulShardDropChance() {
+        return 0.0;
+    }
+
     // -------------------------
     // Boss
     // -------------------------

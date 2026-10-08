@@ -31,6 +31,12 @@ public class Ghost extends Monster {
         );
     }
 
+    // Soul Shard drop chance from the design spreadsheet.
+    @Override
+    public double getSoulShardDropChance() {
+        return 0.10;
+    }
+
     @Override
     public Item generateDrop() {
 

@@ -11,6 +11,10 @@ public abstract class Player extends Character {
     private int experience;
     private int gold;
 
+    // Charge is persistent across stages. Ultimate skill will be added next.
+    private static final int MAX_ULTIMATE_CHARGE = 5;
+    private int ultimateCharge = 0;
+
     private Weapon equippedWeapon;
     private Armor equippedArmor;
 
@@ -49,6 +53,27 @@ public abstract class Player extends Character {
 
     public int getGold() {
         return gold;
+    }
+
+    public int getUltimateCharge() {
+        return ultimateCharge;
+    }
+
+    public int getMaxUltimateCharge() {
+        return MAX_ULTIMATE_CHARGE;
+    }
+
+    // Returns false when already full; Soul Shard is then not consumed.
+    public boolean addUltimateCharge(int amount) {
+        if (amount <= 0 || ultimateCharge >= MAX_ULTIMATE_CHARGE) {
+            return false;
+        }
+        ultimateCharge = Math.min(MAX_ULTIMATE_CHARGE, ultimateCharge + amount);
+        return true;
+    }
+
+    public void restoreUltimateCharge(int savedCharge) {
+        ultimateCharge = Math.max(0, Math.min(MAX_ULTIMATE_CHARGE, savedCharge));
     }
 
     public Weapon getEquippedWeapon() {

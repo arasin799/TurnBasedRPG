@@ -27,6 +27,12 @@ public class DarkMage extends Monster {
         );
     }
 
+    // Soul Shard drop chance from the design spreadsheet.
+    @Override
+    public double getSoulShardDropChance() {
+        return 1.00;
+    }
+
     @Override
     public Item generateDrop() {
         return null;
