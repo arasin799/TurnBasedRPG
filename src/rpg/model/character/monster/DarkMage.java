@@ -5,10 +5,10 @@ import rpg.model.character.player.Player;
 
 public class DarkMage extends Monster {
 
-    private static final int HP = 500;
+    private static final int HP = 350;
     private static final int MP = 100;
-    private static final int ATTACK = 30;
-    private static final int DEFENSE = 20;
+    private static final int ATTACK = 22;
+    private static final int DEFENSE = 18;
 
     private static final int EXP_REWARD = 200;
     private static final int GOLD_REWARD = 200;
@@ -32,8 +32,8 @@ public class DarkMage extends Monster {
         return null;
     }
 
-    private static final int SPECIAL_SKILL_CHANCE = 30;
-    private static final int DARK_BARRIER_BONUS = 15;
+    private static final int SPECIAL_SKILL_CHANCE = 20;
+    private static final int DARK_BARRIER_BONUS = 10;
 
     private boolean darkBarrierActive = false;
 
@@ -68,7 +68,7 @@ public class DarkMage extends Monster {
                 + actualDamage
                 + " damage!"
                 + "\nDark Mage creates a magical barrier!"
-                + "\nThe next incoming hit is reduced by 60%.";
+                + "\nThe next incoming hit is reduced by 50%.";
 
         return new MonsterSkillResult(message);
     }
@@ -84,9 +84,9 @@ public class DarkMage extends Monster {
         // Consume barrier after one hit
         darkBarrierActive = false;
 
-        // Reduce incoming damage by 60%
+        // Reduce incoming damage by 50%
         int reducedDamage = (int) Math.ceil(
-                damage * 0.40
+                damage * 0.50
         );
 
         return Math.max(1, reducedDamage);

@@ -11,9 +11,9 @@ import rpg.model.character.player.Player;
 
 public class Cyclops extends Monster {
 
-    private static final int HP = 340;
+    private static final int HP = 310;
     private static final int MP = 40;
-    private static final int ATTACK = 24;
+    private static final int ATTACK = 22;
     private static final int DEFENSE = 12;
 
     private static final int EXP_REWARD = 100;
@@ -64,7 +64,7 @@ public class Cyclops extends Monster {
 
     
     private static final int SPECIAL_SKILL_CHANCE = 25;
-    private static final int HEAVY_SMASH_BONUS = 12;
+    private static final int HEAVY_SMASH_BONUS = 11;
     
     @Override
     public int getSpecialSkillChance() {
