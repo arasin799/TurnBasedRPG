@@ -1,567 +1,302 @@
 package rpg.gui.panel;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 
-import java.util.ArrayList;
-
-import rpg.model.item.Item;
-import rpg.model.item.Usable;
 import rpg.game.BattleManager;
 import rpg.game.Game;
 import rpg.gui.GameFrame;
+import rpg.gui.GameTheme;
 import rpg.model.character.monster.Monster;
 import rpg.model.character.player.Player;
 import rpg.model.item.BattleUsable;
+import rpg.model.item.Item;
+import rpg.model.item.Usable;
 
+/** Styled battle screen. Combat rules continue to live only in BattleManager. */
 public class BattlePanel extends JPanel {
 
-    private Game game;
-    private GameFrame gameFrame;
-    private BattleManager battle;
+    private final GameFrame gameFrame;
+    private final BattleManager battle;
 
     private JLabel playerNameLabel;
-    private JLabel playerHpLabel;
-    private JLabel playerMpLabel;
-
     private JLabel monsterNameLabel;
-    private JLabel monsterHpLabel;
-
+    private JLabel stunStatusLabel;
+    private JProgressBar playerHpBar;
+    private JProgressBar playerMpBar;
+    private JProgressBar monsterHpBar;
     private JTextArea battleLog;
-
     private JButton attackButton;
     private JButton skillButton;
     private JButton itemButton;
     private JButton escapeButton;
 
-    public BattlePanel(
-            Game game,
-            GameFrame gameFrame,
-            BattleManager battle) {
-
-        this.game = game;
+    public BattlePanel(Game game, GameFrame gameFrame, BattleManager battle) {
         this.gameFrame = gameFrame;
         this.battle = battle;
-
-        createComponents();
+        setLayout(new BorderLayout(0, 8));
+        setBackground(GameTheme.BACKGROUND);
+        setBorder(BorderFactory.createEmptyBorder(8, 14, 11, 14));
         createLayout();
         registerEvents();
-
         refreshBattleInfo();
-
-        addBattleLog(
-                "Battle started!\n"
-                        + game.getPlayer().getName()
-                        + " VS "
-                        + battle.getMonster().getName()
-        );
+        addBattleLog("Battle started! " + battle.getPlayer().getName()
+                + " VS " + battle.getMonster().getName());
     }
 
-    // -------------------------
-    // Components
-    // -------------------------
+    private JLabel label(String text, int size, Color color) {
+        JLabel result = new JLabel(text, SwingConstants.CENTER);
+        result.setForeground(color);
+        result.setFont(new Font("Monospaced", Font.BOLD, size));
+        return result;
+    }
 
-    private void createComponents() {
+    private JProgressBar bar(Color color) {
+        JProgressBar bar = new JProgressBar(0, 100);
+        bar.setForeground(color);
+        bar.setBackground(new Color(14, 22, 38));
+        bar.setBorder(BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 1));
+        bar.setBorderPainted(true);
+        bar.setStringPainted(true);
+        bar.setFont(new Font("Monospaced", Font.BOLD, 11));
+        bar.setPreferredSize(new Dimension(100, 20));
+        return bar;
+    }
 
-        playerNameLabel =
-                new JLabel(
-                        "",
-                        SwingConstants.CENTER
-                );
+    private JPanel card() {
+        JPanel panel = new JPanel(new BorderLayout(2, 5));
+        panel.setBackground(GameTheme.PANEL);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)));
+        return panel;
+    }
 
-        playerHpLabel =
-                new JLabel(
-                        "",
-                        SwingConstants.CENTER
-                );
+    private void createLayout() {
+        JPanel topPanel = new JPanel(new GridLayout(1, 2, 12, 0));
+        topPanel.setBackground(GameTheme.BACKGROUND);
+        topPanel.setPreferredSize(new Dimension(700, 91));
 
-        playerMpLabel =
-                new JLabel(
-                        "",
-                        SwingConstants.CENTER
-                );
+        JPanel playerCard = card();
+        playerNameLabel = label("", 13, GameTheme.GOLD);
+        stunStatusLabel = label("", 10, new Color(242, 152, 115));
+        JPanel playerTitle = new JPanel(new GridLayout(2, 1, 0, 0));
+        playerTitle.setOpaque(false);
+        playerTitle.add(playerNameLabel);
+        playerTitle.add(stunStatusLabel);
+        playerCard.add(playerTitle, BorderLayout.NORTH);
 
-        monsterNameLabel =
-                new JLabel(
-                        "",
-                        SwingConstants.CENTER
-                );
+        playerHpBar = bar(new Color(83, 186, 130));
+        playerMpBar = bar(new Color(94, 152, 223));
+        JPanel playerBars = new JPanel(new GridLayout(2, 1, 0, 5));
+        playerBars.setOpaque(false);
+        playerBars.add(playerHpBar);
+        playerBars.add(playerMpBar);
+        playerCard.add(playerBars, BorderLayout.CENTER);
 
-        monsterHpLabel =
-                new JLabel(
-                        "",
-                        SwingConstants.CENTER
-                );
+        JPanel monsterCard = card();
+        monsterNameLabel = label("", 13, new Color(245, 153, 144));
+        monsterCard.add(monsterNameLabel, BorderLayout.NORTH);
+        monsterHpBar = bar(new Color(208, 103, 111));
+        JPanel monsterBars = new JPanel(new GridLayout(2, 1, 0, 5));
+        monsterBars.setOpaque(false);
+        monsterBars.add(monsterHpBar);
+        monsterBars.add(label(battle.getMonster().isBoss()
+                ? "BOSS - ESCAPE DISABLED" : "ENEMY ENCOUNTER", 10, GameTheme.MUTED));
+        monsterCard.add(monsterBars, BorderLayout.CENTER);
 
-        battleLog =
-                new JTextArea();
+        topPanel.add(playerCard);
+        topPanel.add(monsterCard);
+        add(topPanel, BorderLayout.NORTH);
 
+        BattleArenaPanel arena = new BattleArenaPanel(battle);
+        JPanel midPanel = new JPanel(new BorderLayout(0, 7));
+        midPanel.setOpaque(false);
+        midPanel.add(arena, BorderLayout.NORTH);
+
+        battleLog = new JTextArea();
         battleLog.setEditable(false);
         battleLog.setLineWrap(true);
         battleLog.setWrapStyleWord(true);
+        battleLog.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        battleLog.setForeground(GameTheme.TEXT);
+        battleLog.setBackground(new Color(22, 32, 52));
+        battleLog.setCaretColor(GameTheme.GOLD);
+        battleLog.setMargin(new java.awt.Insets(7, 11, 7, 11));
+        JScrollPane logScroll = new JScrollPane(battleLog);
+        logScroll.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
+                " BATTLE LOG ", 0, 0,
+                new Font("Monospaced", Font.BOLD, 11), GameTheme.GOLD));
+        logScroll.getViewport().setBackground(GameTheme.PANEL);
+        midPanel.add(logScroll, BorderLayout.CENTER);
+        add(midPanel, BorderLayout.CENTER);
 
-        attackButton =
-                new JButton("Attack");
-
-        skillButton =
-                new JButton();
-
-        itemButton =
-                new JButton("Use Item");
-
-        escapeButton =
-                new JButton("Escape");
-
-        itemButton =
-                new JButton("Use Item");
+        JPanel actions = new JPanel(new GridLayout(1, 4, 9, 0));
+        actions.setOpaque(false);
+        actions.setPreferredSize(new Dimension(700, 45));
+        attackButton = new JButton("ATTACK");
+        skillButton = new JButton("SKILL");
+        itemButton = new JButton("USE ITEM");
+        escapeButton = new JButton("ESCAPE");
+        styleAction(attackButton, true);
+        styleAction(skillButton, false);
+        styleAction(itemButton, false);
+        styleAction(escapeButton, false);
+        actions.add(attackButton);
+        actions.add(skillButton);
+        actions.add(itemButton);
+        actions.add(escapeButton);
+        add(actions, BorderLayout.SOUTH);
     }
 
-    // -------------------------
-    // Use Item
-    // -------------------------
+    private void styleAction(JButton button, boolean primary) {
+        GameTheme.styleButton(button, primary);
+        button.setFont(new Font("Monospaced", Font.BOLD, 13));
+        button.setPreferredSize(new Dimension(135, 44));
+        button.setMaximumSize(new Dimension(135, 44));
+    }
 
-    private void useItem() {
+    private void registerEvents() {
+        attackButton.addActionListener(e -> attack());
+        skillButton.addActionListener(e -> useSkill());
+        itemButton.addActionListener(e -> useItem());
+        escapeButton.addActionListener(e -> escape());
+    }
 
-        if (battle.isBattleOver()) {
-            return;
-        }
-
-        if (battle.isPlayerStunned()) {
-
-        String result = battle.skipStunnedTurn();
-
+    private void renderAction(String result) {
         addBattleLog(result);
         refreshBattleInfo();
         checkBattleResult();
+    }
 
-        return;
+    private void attack() {
+        if (!battle.isBattleOver()) {
+            renderAction(battle.playerAttack());
+        }
+    }
+
+    private void useSkill() {
+        if (!battle.isBattleOver()) {
+            renderAction(battle.playerUseSkill());
+        }
+    }
+
+    private void useItem() {
+        if (battle.isBattleOver()) {
+            return;
+        }
+        // Stun consumes the next turn before opening the inventory dialog.
+        if (battle.isPlayerStunned()) {
+            renderAction(battle.skipStunnedTurn());
+            return;
         }
 
-        Player player =
-                battle.getPlayer();
-
-        ArrayList<Item> usableItems =
-                new ArrayList<>();
-
-        for (Item item :
-                player.getInventory()
-                        .getItems()) {
-
-            if (item instanceof Usable
-                    || item instanceof BattleUsable) {
-
+        Player player = battle.getPlayer();
+        ArrayList<Item> usableItems = new ArrayList<>();
+        for (Item item : player.getInventory().getItems()) {
+            if (item instanceof Usable || item instanceof BattleUsable) {
                 usableItems.add(item);
             }
         }
-
         if (usableItems.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You do not have any usable items.",
-                    "Use Item",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
+            JOptionPane.showMessageDialog(this, "You do not have any usable items.",
+                    "Use Item", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-
-        Item selectedItem =
-                (Item) JOptionPane.showInputDialog(
-                        this,
-                        "Choose an item:",
-                        "Use Item",
-                        JOptionPane.PLAIN_MESSAGE,
-                        null,
-                        usableItems.toArray(),
-                        usableItems.get(0)
-                );
-
-        if (selectedItem == null) {
-            return;
+        Item selected = (Item) JOptionPane.showInputDialog(
+                this, "Choose an item:", "Use Item", JOptionPane.PLAIN_MESSAGE,
+                null, usableItems.toArray(), usableItems.get(0));
+        if (selected != null) {
+            renderAction(battle.playerUseItem(selected));
         }
-
-        String result =
-                battle.playerUseItem(
-                        selectedItem
-                );
-
-        addBattleLog(result);
-
-        refreshBattleInfo();
-
-        checkBattleResult();
     }
-
-    // -------------------------
-    // Layout
-    // -------------------------
-
-    private void createLayout() {
-
-        setLayout(
-                new BorderLayout(
-                        10,
-                        10
-                )
-        );
-
-        setBorder(
-                BorderFactory.createEmptyBorder(
-                        15,
-                        20,
-                        15,
-                        20
-                )
-        );
-
-        // -------------------------
-        // Character Status
-        // -------------------------
-
-        JPanel statusPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                2,
-                                20,
-                                0
-                        )
-                );
-
-        JPanel playerPanel =
-                new JPanel(
-                        new GridLayout(
-                                3,
-                                1,
-                                5,
-                                5
-                        )
-                );
-
-        playerPanel.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Player"
-                )
-        );
-
-        playerNameLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        18
-                )
-        );
-
-        playerPanel.add(playerNameLabel);
-        playerPanel.add(playerHpLabel);
-        playerPanel.add(playerMpLabel);
-
-        JPanel monsterPanel =
-                new JPanel(
-                        new GridLayout(
-                                2,
-                                1,
-                                5,
-                                5
-                        )
-                );
-
-        monsterPanel.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Enemy"
-                )
-        );
-
-        monsterNameLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        18
-                )
-        );
-
-        monsterPanel.add(monsterNameLabel);
-        monsterPanel.add(monsterHpLabel);
-
-        statusPanel.add(playerPanel);
-        statusPanel.add(monsterPanel);
-
-        // -------------------------
-        // Battle Log
-        // -------------------------
-
-        JScrollPane logScrollPane =
-                new JScrollPane(
-                        battleLog
-                );
-
-        logScrollPane.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Battle Log"
-                )
-        );
-
-        // -------------------------
-        // Action Buttons
-        // -------------------------
-
-        JPanel actionPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                4,
-                                10,
-                                0
-                        )
-                );
-
-        actionPanel.add(attackButton);
-        actionPanel.add(skillButton);
-        actionPanel.add(itemButton);
-        actionPanel.add(escapeButton);
-
-        add(
-                statusPanel,
-                BorderLayout.NORTH
-        );
-
-        add(
-                logScrollPane,
-                BorderLayout.CENTER
-        );
-
-        add(
-                actionPanel,
-                BorderLayout.SOUTH
-        );
-    }
-
-    // -------------------------
-    // Events
-    // -------------------------
-
-    private void registerEvents() {
-
-        attackButton.addActionListener(
-                e -> attack()
-        );
-
-        skillButton.addActionListener(
-                e -> useSkill()
-        );
-
-        itemButton.addActionListener(
-                e -> useItem()
-        );
-
-        escapeButton.addActionListener(
-                e -> escape()
-        );
-    }
-
-    // -------------------------
-    // Attack
-    // -------------------------
-
-    private void attack() {
-
-        if (battle.isBattleOver()) {
-            return;
-        }
-
-        String result =
-                battle.playerAttack();
-
-        addBattleLog(result);
-
-        refreshBattleInfo();
-
-        checkBattleResult();
-    }
-
-    // -------------------------
-    // Skill
-    // -------------------------
-
-    private void useSkill() {
-
-        if (battle.isBattleOver()) {
-            return;
-        }
-
-        String result =
-                battle.playerUseSkill();
-
-        addBattleLog(result);
-
-        refreshBattleInfo();
-
-        checkBattleResult();
-    }
-
-    // -------------------------
-    // Escape
-    // -------------------------
 
     private void escape() {
-
         if (battle.isBattleOver()) {
             return;
         }
-
-        String result =
-                battle.escape();
-
-        addBattleLog(result);
-
+        String message = battle.escape();
+        addBattleLog(message);
         refreshBattleInfo();
-
         if (battle.hasEscaped()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You escaped from the battle.",
-                    "Escape",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
+            JOptionPane.showMessageDialog(this, "You escaped from the battle.",
+                    "Escape", JOptionPane.INFORMATION_MESSAGE);
             gameFrame.finishCurrentBattle();
-        }
-        else {
-                checkBattleResult();
+        } else {
+            checkBattleResult();
         }
     }
 
-    // -------------------------
-    // Battle Result
-    // -------------------------
-
     private void checkBattleResult() {
-
         if (!battle.isBattleOver()) {
             return;
         }
-
         disableBattleButtons();
-
         if (battle.isVictory()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Victory!\n"
-                            + battle.getMonster()
-                                    .getName()
-                            + " has been defeated.",
-                    "Victory",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
+            // GameFrame shows the dedicated victory screen with 3 action buttons.
             gameFrame.finishCurrentBattle();
-
         } else if (battle.isDefeat()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You have been defeated.",
-                    "Defeat",
-                    JOptionPane.ERROR_MESSAGE
-            );
-
+            JOptionPane.showMessageDialog(this, "You have been defeated.",
+                    "Defeat", JOptionPane.ERROR_MESSAGE);
             gameFrame.finishCurrentBattle();
         }
     }
 
-    // -------------------------
-    // Refresh
-    // -------------------------
+    private void setBar(JProgressBar bar, int value, int max, String prefix) {
+        bar.setMaximum(Math.max(1, max));
+        bar.setValue(Math.max(0, value));
+        bar.setString(prefix + " " + value + "/" + max);
+    }
 
     private void refreshBattleInfo() {
-
-        Player player =
-                battle.getPlayer();
-
-        Monster monster =
-                battle.getMonster();
-
-        playerNameLabel.setText(
-                player.getName()
-                        + " ("
-                        + player.getClass()
-                                .getSimpleName()
-                        + ")"
-        );
-
-        playerHpLabel.setText(
-                "HP: "
-                        + player.getHp()
-                        + "/"
-                        + player.getMaxHp()
-        );
-
-        playerMpLabel.setText(
-                "MP: "
-                        + player.getMp()
-                        + "/"
-                        + player.getMaxMp()
-        );
-
-        monsterNameLabel.setText(
-                monster.getName()
-        );
-
-        monsterHpLabel.setText(
-                "HP: "
-                        + monster.getHp()
-                        + "/"
-                        + monster.getMaxHp()
-        );
-
-        skillButton.setText(
-                player.getSkillName()
-        );
+        Player player = battle.getPlayer();
+        Monster monster = battle.getMonster();
+        playerNameLabel.setText(player.getName() + " / "
+                + player.getClass().getSimpleName().toUpperCase());
+        monsterNameLabel.setText("ENEMY: " + monster.getName().toUpperCase());
+        stunStatusLabel.setText(battle.isPlayerStunned()
+                ? "STUNNED - NEXT ACTION SKIPPED" : "");
+        setBar(playerHpBar, player.getHp(), player.getMaxHp(), "HP");
+        setBar(playerMpBar, player.getMp(), player.getMaxMp(), "MP");
+        setBar(monsterHpBar, monster.getHp(), monster.getMaxHp(), "HP");
+        skillButton.setText(player.getSkillName().toUpperCase());
+        skillButton.setToolTipText("Spend MP to use " + player.getSkillName());
+        if (monster.isBoss()) {
+            escapeButton.setEnabled(false);
+            escapeButton.setToolTipText("You cannot escape from a boss battle.");
+        }
     }
 
-    // -------------------------
-    // Battle Log
-    // -------------------------
-
-    private void addBattleLog(
-            String message) {
-
-        if (!battleLog.getText().isEmpty()) {
-
-            battleLog.append(
-                    "\n\n"
-            );
+    private void addBattleLog(String message) {
+        if (message == null || message.isEmpty()) {
+            return;
         }
-
+        if (!battleLog.getText().isEmpty()) {
+            battleLog.append("\n\n");
+        }
         battleLog.append(message);
-
-        battleLog.setCaretPosition(
-                battleLog.getDocument()
-                        .getLength()
-        );
+        battleLog.setCaretPosition(battleLog.getDocument().getLength());
     }
 
     private void disableBattleButtons() {
-
         attackButton.setEnabled(false);
         skillButton.setEnabled(false);
         itemButton.setEnabled(false);
         escapeButton.setEnabled(false);
     }
-    
-    
-
 }

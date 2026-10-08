@@ -505,7 +505,8 @@ public class GameFrame extends JFrame {
     private void openBattleAtStage(int stageIndex) {
         try {
             BattleManager battle = game.startBattle(stageIndex);
-            bottomNavigationPanel.setVisible(true);
+            // Hide inactive Hub buttons while the battle screen is displayed.
+            bottomNavigationPanel.setVisible(false);
             selectedStage = stageIndex;
 
             if (activeBattlePanel != null) {
