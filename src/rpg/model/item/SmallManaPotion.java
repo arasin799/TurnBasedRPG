@@ -4,7 +4,7 @@ import rpg.model.character.player.Player;
 
 public class SmallManaPotion extends Potion {
 
-    private static final int RESTORE_AMOUNT = 15;
+    private static final int RESTORE_AMOUNT = 5;
     private static final int BUY_PRICE = 35;
     private static final int SELL_PRICE = 17;
 
@@ -12,7 +12,7 @@ public class SmallManaPotion extends Potion {
 
         super(
                 "Small Mana Potion",
-                "Restores 15 MP.",
+                "Restores 5 MP.",
                 BUY_PRICE,
                 SELL_PRICE,
                 RESTORE_AMOUNT

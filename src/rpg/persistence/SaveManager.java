@@ -142,7 +142,7 @@ public class SaveManager {
             for (Item item : items) {
 
                 writer.write(
-                        serializeItem(item)
+                        "ITEM=" + serializeItem(item)
                 );
 
                 writer.newLine();

@@ -575,13 +575,6 @@ public class InventoryPanel extends JPanel {
                     JOptionPane.INFORMATION_MESSAGE
             );
 
-                JOptionPane.showMessageDialog(
-                        this,
-                        armor.getName()
-                                + " equipped.",
-                        "Equipment",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
             }
         }
 

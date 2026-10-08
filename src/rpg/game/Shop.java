@@ -34,14 +34,6 @@ public class Shop {
     private void createDefaultItems() {
 
         itemsForSale.add(
-                new HealthPotion()
-        );
-
-        itemsForSale.add(
-                new ManaPotion()
-        );
-
-        itemsForSale.add(
                 new Weapon(
                         "Dagger",
                         "A lightweight weapon usable by every class.",
