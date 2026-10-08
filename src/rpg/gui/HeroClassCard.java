@@ -5,6 +5,12 @@ import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.imageio.ImageIO;
 import java.awt.RenderingHints;
 
 import javax.swing.JButton;
@@ -20,6 +26,7 @@ public class HeroClassCard extends JButton {
     private final Color accent;
     private final Runnable onChoose;
     private boolean chosen;
+    private final BufferedImage spriteImage;
 
     public HeroClassCard(String heroClass, Player preview,
                          Color accent, Runnable onChoose) {
@@ -27,6 +34,8 @@ public class HeroClassCard extends JButton {
         this.preview = preview;
         this.accent = accent;
         this.onChoose = onChoose;
+        this.spriteImage = loadSprite("assets/player/"
+                + heroClass.toLowerCase(java.util.Locale.ROOT) + ".png");
         setUI(new BasicButtonUI());
         setBorderPainted(false);
         setFocusPainted(false);
@@ -68,7 +77,16 @@ public class HeroClassCard extends JButton {
         g.fillRect(portraitX, portraitY, 108, 103);
         g.setColor(chosen ? GameTheme.GOLD : accent);
         g.drawRect(portraitX, portraitY, 107, 102);
-        drawPixelHero(g, portraitX + 14, portraitY + 10, 5);
+        // Scale 16x16 sprite to 80x80 with nearest-neighbor pixels.
+        if (spriteImage != null) {
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g.drawImage(spriteImage, portraitX + 14, portraitY + 11,
+                    80, 80, null);
+        } else {
+            // Keep the original hand-drawn character if an asset is missing.
+            drawPixelHero(g, portraitX + 14, portraitY + 10, 5);
+        }
 
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -98,6 +116,32 @@ public class HeroClassCard extends JButton {
 
         g.dispose();
         super.paintComponent(graphics);
+    }
+
+    /** Load sprite from project assets or packaged classpath. */
+    private static BufferedImage loadSprite(String path) {
+        try (InputStream stream = HeroClassCard.class.getClassLoader()
+                .getResourceAsStream(path)) {
+            if (stream != null) {
+                BufferedImage image = ImageIO.read(stream);
+                if (image != null) return image;
+            }
+        } catch (IOException ignored) {
+            // Try file-system paths below.
+        }
+
+        File file = new File(path);
+        if (!file.isFile()) {
+            file = new File("TurnBasedRPG", path);
+        }
+        if (file.isFile()) {
+            try {
+                return ImageIO.read(file);
+            } catch (IOException ignored) {
+                // Fall back to the original built-in pixel drawing.
+            }
+        }
+        return null;
     }
 
     private String roleText() {
