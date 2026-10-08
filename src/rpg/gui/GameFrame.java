@@ -569,7 +569,9 @@ public class GameFrame extends JFrame {
         if (choice == 0) {
             openBattleAtStage(completedStage);
         } else if (hasNextStage && choice == 1) {
-            openBattleAtStage(completedStage + 1);
+            // Select the next stage, but let the player shop or prepare first.
+            selectedStage = completedStage + 1;
+            showHub();
         } else if (!hasNextStage && choice == 2) {
             showGameResult(true);
         } else {
