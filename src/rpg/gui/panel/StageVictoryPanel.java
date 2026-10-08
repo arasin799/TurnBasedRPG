@@ -1,6 +1,8 @@
 package rpg.gui.panel;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.util.List;
 import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -24,7 +26,8 @@ public class StageVictoryPanel extends JPanel {
             String monsterName,
             int expReward,
             int goldReward,
-            boolean hasNextStage) {
+            boolean hasNextStage,
+            List<String> droppedItems) {
 
         // Keep margins small enough for the existing 750x520 game window.
         setLayout(new BorderLayout(0, 12));
@@ -42,6 +45,17 @@ public class StageVictoryPanel extends JPanel {
                 "Gained " + expReward + " EXP and " + goldReward + " Gold!",
                 SwingConstants.CENTER);
         rewardLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+
+        JLabel dropLabel = null;
+        if (droppedItems != null && !droppedItems.isEmpty()) {
+            String prefix = droppedItems.size() == 1
+                    ? "Item Obtained: " : "Items Obtained: ";
+            dropLabel = new JLabel(prefix + String.join(", ", droppedItems),
+                    SwingConstants.CENTER);
+            dropLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+            dropLabel.setForeground(new Color(36, 120, 77));
+            dropLabel.setAlignmentX(CENTER_ALIGNMENT);
+        }
 
         JLabel hintLabel = new JLabel(
                 "Replay cleared stages to farm EXP and Gold.",
@@ -64,6 +78,10 @@ public class StageVictoryPanel extends JPanel {
         textPanel.add(stageLabel);
         textPanel.add(Box.createVerticalStrut(18));
         textPanel.add(rewardLabel);
+        if (dropLabel != null) {
+            textPanel.add(Box.createVerticalStrut(10));
+            textPanel.add(dropLabel);
+        }
         textPanel.add(Box.createVerticalStrut(10));
         textPanel.add(hintLabel);
 

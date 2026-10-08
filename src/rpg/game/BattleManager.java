@@ -6,6 +6,8 @@ import rpg.model.item.Item;
 import rpg.model.item.BattleUsable;
 import rpg.model.item.SoulShard;
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.List;
 import rpg.model.character.monster.MonsterSkillResult;
 
 public class BattleManager {
@@ -18,6 +20,8 @@ public class BattleManager {
     private boolean rewardGiven;
     private final Random random = new Random();
     private int playerStunTurns = 0;
+    // Rewards actually granted by this encounter (no additional drop rolls).
+    private final List<String> droppedItemNames = new ArrayList<>();
 
     public BattleManager(Player player, Monster monster) {
 
@@ -59,6 +63,11 @@ public class BattleManager {
     public boolean isDefeat() {
         return battleOver
                 && !player.isAlive();
+    }
+
+    /** Item names awarded on victory. Returns a copy to protect battle state. */
+    public List<String> getDroppedItemNames() {
+        return new ArrayList<>(droppedItemNames);
     }
 
     // -------------------------
@@ -482,6 +491,7 @@ public class BattleManager {
 
             player.getInventory()
                     .addItem(droppedItem);
+            droppedItemNames.add(droppedItem.getName());
 
             message += "\nItem dropped: "
                     + droppedItem.getName()
@@ -491,8 +501,10 @@ public class BattleManager {
         // Soul Shard is an independent bonus drop; potions may also drop.
         // Roll only once per defeated monster (handleVictory grants rewards once).
         if (random.nextDouble() < monster.getSoulShardDropChance()) {
-            player.getInventory().addItem(new SoulShard());
-            message += "\nItem dropped: Soul Shard!";
+            SoulShard shard = new SoulShard();
+            player.getInventory().addItem(shard);
+            droppedItemNames.add(shard.getName());
+            message += "\nItem dropped: " + shard.getName() + "!";
         }
 
         if (player.getLevel() > oldLevel) {

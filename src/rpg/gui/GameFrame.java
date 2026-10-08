@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.IOException;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -455,12 +456,13 @@ public class GameFrame extends JFrame {
         String monsterName = battle.getMonster().getName();
         int expReward = battle.getMonster().getExpReward();
         int goldReward = battle.getMonster().getGoldReward();
+        List<String> droppedItems = battle.getDroppedItemNames();
 
         game.finishBattle();
         refreshGameInfo();
 
         if (victory) {
-            showVictoryScreen(completedStage, monsterName, expReward, goldReward);
+            showVictoryScreen(completedStage, monsterName, expReward, goldReward, droppedItems);
         } else if (defeat) {
             showGameResult(false);
         } else {
@@ -473,14 +475,15 @@ public class GameFrame extends JFrame {
             int completedStage,
             String monsterName,
             int expReward,
-            int goldReward) {
+            int goldReward,
+            List<String> droppedItems) {
 
         boolean hasNextStage = completedStage + 1 < game.getStageCount()
                 && completedStage + 1 <= game.getStage();
 
         StageVictoryPanel victoryPanel = new StageVictoryPanel(
                 this, completedStage, monsterName,
-                expReward, goldReward, hasNextStage);
+                expReward, goldReward, hasNextStage, droppedItems);
 
         // Prevent old victory cards accumulating during repeated farming.
         if (activeVictoryPanel != null) {
