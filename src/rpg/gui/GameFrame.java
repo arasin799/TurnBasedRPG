@@ -23,6 +23,7 @@ import rpg.gui.panel.InventoryPanel;
 import rpg.gui.panel.ShopPanel;
 import rpg.gui.panel.GameResultPanel;
 import rpg.gui.panel.StageVictoryPanel;
+import rpg.gui.panel.StageSelectPanel;
 
 public class GameFrame extends JFrame {
 
@@ -58,6 +59,7 @@ public class GameFrame extends JFrame {
     // Remove old battle panels before showing a new challenge.
     private BattlePanel activeBattlePanel;
     private StageVictoryPanel activeVictoryPanel;
+    private StageSelectPanel activeStageSelectPanel;
 
     // Stage selected on the hub; does not change unlocked progress.
     private int selectedStage;
@@ -468,38 +470,31 @@ public class GameFrame extends JFrame {
         openBattleAtStage(selectedStage);
     }
 
-    // Choose a stage without immediately entering combat.
+    // Dedicated stage selection screen. Selecting a stage never starts a battle.
     private void selectStage() {
-        int unlockedCount = game.getUnlockedStageCount();
-        String[] choices = new String[unlockedCount];
-
-        for (int i = 0; i < unlockedCount; i++) {
-            String status = i < game.getStage() ? " [Cleared]" : " [New]";
-            choices[i] = "Stage " + (i + 1) + " - "
-                    + game.getStageName(i) + status;
+        if (activeStageSelectPanel != null) {
+            centerPanel.remove(activeStageSelectPanel);
         }
+        activeStageSelectPanel = new StageSelectPanel(game, this, selectedStage);
+        centerPanel.add(activeStageSelectPanel, "STAGE_SELECT");
+        centerLayout.show(centerPanel, "STAGE_SELECT");
+        bottomNavigationPanel.setVisible(false);
+        setNavigationEnabled(false);
+        centerPanel.revalidate();
+        centerPanel.repaint();
+        revalidate();
+        repaint();
+    }
 
-        String selected = (String) JOptionPane.showInputDialog(
-                this,
-                "Choose a stage (press Battle to start):",
-                "Select Stage",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                choices,
-                choices[selectedStage]
-        );
-
-        if (selected == null) {
+    // Called only when the player confirms a stage on StageSelectPanel.
+    public void confirmSelectedStage(int stageIndex) {
+        if (stageIndex < 0 || stageIndex >= game.getUnlockedStageCount()) {
+            JOptionPane.showMessageDialog(this, "This stage is locked.",
+                    "Stage Locked", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        for (int i = 0; i < choices.length; i++) {
-            if (choices[i].equals(selected)) {
-                selectedStage = i;
-                refreshGameInfo();
-                return;
-            }
-        }
+        selectedStage = stageIndex;
+        showHub();
     }
 
     private void openBattleAtStage(int stageIndex) {
@@ -594,7 +589,6 @@ public class GameFrame extends JFrame {
     }
 
     public void openStageSelection() {
-        showHub();
         selectStage();
     }
 
