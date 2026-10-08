@@ -5,8 +5,8 @@ import rpg.model.character.player.Player;
 public class ManaPotion extends Potion {
 
     private static final int RESTORE_AMOUNT = 10;
-    private static final int BUY_PRICE = 60;
-    private static final int SELL_PRICE = 30;
+    private static final int BUY_PRICE = 20;
+    private static final int SELL_PRICE = 10;
 
     public ManaPotion() {
 
