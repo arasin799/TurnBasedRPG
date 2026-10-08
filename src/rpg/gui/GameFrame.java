@@ -22,6 +22,7 @@ import rpg.gui.panel.BattlePanel;
 import rpg.gui.panel.InventoryPanel;
 import rpg.gui.panel.ShopPanel;
 import rpg.gui.panel.GameResultPanel;
+import rpg.gui.panel.StageVictoryPanel;
 
 public class GameFrame extends JFrame {
 
@@ -52,9 +53,11 @@ public class GameFrame extends JFrame {
     private CardLayout centerLayout;
     private JPanel centerPanel;
     private JPanel hubPanel;
+    private JPanel bottomNavigationPanel;
 
     // Remove old battle panels before showing a new challenge.
     private BattlePanel activeBattlePanel;
+    private StageVictoryPanel activeVictoryPanel;
 
     // Stage selected on the hub; does not change unlocked progress.
     private int selectedStage;
@@ -313,6 +316,8 @@ public class GameFrame extends JFrame {
                 BorderLayout.SOUTH
         );
 
+        bottomNavigationPanel = southPanel;
+
         // -------------------------
         // Add to Frame
         // -------------------------
@@ -500,6 +505,7 @@ public class GameFrame extends JFrame {
     private void openBattleAtStage(int stageIndex) {
         try {
             BattleManager battle = game.startBattle(stageIndex);
+            bottomNavigationPanel.setVisible(true);
             selectedStage = stageIndex;
 
             if (activeBattlePanel != null) {
@@ -531,12 +537,14 @@ public class GameFrame extends JFrame {
         boolean victory = battle.isVictory();
         boolean defeat = battle.isDefeat();
         String monsterName = battle.getMonster().getName();
+        int expReward = battle.getMonster().getExpReward();
+        int goldReward = battle.getMonster().getGoldReward();
 
         game.finishBattle();
         refreshGameInfo();
 
         if (victory) {
-            showVictoryChoices(completedStage, monsterName);
+            showVictoryScreen(completedStage, monsterName, expReward, goldReward);
         } else if (defeat) {
             showGameResult(false);
         } else {
@@ -545,42 +553,52 @@ public class GameFrame extends JFrame {
         }
     }
 
-    private void showVictoryChoices(int completedStage, String monsterName) {
+    private void showVictoryScreen(
+            int completedStage,
+            String monsterName,
+            int expReward,
+            int goldReward) {
+
         boolean hasNextStage = completedStage + 1 < game.getStageCount()
                 && completedStage + 1 <= game.getStage();
 
-        String[] choices = hasNextStage
-                ? new String[] {"Restart Challenge", "Next Stage", "Stage Select"}
-                : new String[] {"Restart Challenge", "Stage Select", "View Ending"};
+        StageVictoryPanel victoryPanel = new StageVictoryPanel(
+                this, completedStage, monsterName,
+                expReward, goldReward, hasNextStage);
 
-        int choice = JOptionPane.showOptionDialog(
-                this,
-                "Victory! " + monsterName + " defeated!"
-                        + "\nEXP, Gold and any dropped item have been awarded."
-                        + "\nWhat would you like to do next?",
-                "Stage " + (completedStage + 1) + " Cleared",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.INFORMATION_MESSAGE,
-                null,
-                choices,
-                choices[1]
-        );
-
-        if (choice == 0) {
-            openBattleAtStage(completedStage);
-        } else if (hasNextStage && choice == 1) {
-            // Select the next stage, but let the player shop or prepare first.
-            selectedStage = completedStage + 1;
-            showHub();
-        } else if (!hasNextStage && choice == 2) {
-            showGameResult(true);
-        } else {
-            showHub();
-            // Stage Select opens the list immediately. Cancel returns to Hub.
-            if (choice == 2 || (!hasNextStage && choice == 1)) {
-                selectStage();
-            }
+        // Prevent old victory cards accumulating during repeated farming.
+        if (activeVictoryPanel != null) {
+            centerPanel.remove(activeVictoryPanel);
         }
+        activeVictoryPanel = victoryPanel;
+        centerPanel.add(activeVictoryPanel, "STAGE_VICTORY");
+        centerLayout.show(centerPanel, "STAGE_VICTORY");
+        centerPanel.revalidate();
+        centerPanel.repaint();
+        setNavigationEnabled(false);
+        // Victory has its own 3 buttons; hide inactive Hub buttons.
+        bottomNavigationPanel.setVisible(false);
+        revalidate();
+        repaint();
+    }
+
+    // Called by the buttons on StageVictoryPanel.
+    public void restartChallenge(int stageIndex) {
+        openBattleAtStage(stageIndex);
+    }
+
+    public void prepareNextStage(int stageIndex) {
+        selectedStage = stageIndex;
+        showHub();
+    }
+
+    public void openStageSelection() {
+        showHub();
+        selectStage();
+    }
+
+    public void viewEnding() {
+        showGameResult(true);
     }
 
     private void showGameResult(
@@ -603,6 +621,9 @@ public class GameFrame extends JFrame {
         );
 
         setNavigationEnabled(false);
+        bottomNavigationPanel.setVisible(false);
+        revalidate();
+        repaint();
     }
 
     // -------------------------
@@ -632,6 +653,7 @@ public class GameFrame extends JFrame {
 
     public void showHub() {
 
+        bottomNavigationPanel.setVisible(true);
         refreshGameInfo();
 
         centerLayout.show(
