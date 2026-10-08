@@ -2,6 +2,7 @@ package rpg.model.character.monster;
 
 import rpg.model.character.Character;
 import rpg.model.item.Item;
+import rpg.model.character.player.Player;
 
 public abstract class Monster extends Character {
 
@@ -57,5 +58,14 @@ public abstract class Monster extends Character {
     public boolean canEscape() {
         return !boss;
     }
+
+    public int getSpecialSkillChance() {
+        return 0;
+    }
+
+    public MonsterSkillResult useSpecialSkill(Player player) {
+        return null;
+    }
+
 }
 

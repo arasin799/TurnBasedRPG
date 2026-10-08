@@ -81,25 +81,55 @@ public abstract class Character {
     // HP Methods
     // -------------------------
 
-    public int takeDamage(int incomingDamage) {
 
-        if (incomingDamage <= 0) {
+    public int takeDamage(int incomingDamage) {
+        return applyDamage(incomingDamage, 0);
+    }
+
+    public int takeSpecialDamage(
+            int incomingDamage,
+            int bonusDamage) {
+
+        return applyDamage(incomingDamage, bonusDamage);
+    }
+
+
+    private int applyDamage(
+            int incomingDamage,
+            int bonusDamage) {
+
+        if (incomingDamage <= 0 || !isAlive()) {
             return 0;
         }
 
-        int actualDamage = incomingDamage - getDefense();
+        // Defense reduces damage by a percentage.
+        int defense = Math.max(0, getDefense());
 
-        if (actualDamage < 1) {
-            actualDamage = 1;
-        }
+        int damageAfterDefense = (int) Math.ceil(
+                incomingDamage * 100.0
+                / (100.0 + 2.0 * defense)
+        );
 
-        hp -= actualDamage;
+        // Special skill bonus ignores defense.
+        int extraDamage = Math.max(0, bonusDamage);
 
-        if (hp < 0) {
-            hp = 0;
-        }
+        int actualDamage =
+                Math.max(1, damageAfterDefense)
+                + extraDamage;
+
+        // Allow subclasses to modify final damage
+        actualDamage = Math.max(
+                1,
+                modifyFinalDamage(actualDamage)
+        );
+
+        hp = Math.max(0, hp - actualDamage);
 
         return actualDamage;
+    }
+
+    protected int modifyFinalDamage(int damage) {
+        return damage;
     }
 
     public void heal(int amount) {

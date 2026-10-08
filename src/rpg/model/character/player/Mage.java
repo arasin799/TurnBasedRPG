@@ -13,7 +13,7 @@ public class Mage extends Player {
     private static final int STARTING_ATTACK = 28;
     private static final int STARTING_DEFENSE = 7;
 
-    private static final int SKILL_MP_COST = 12;
+    private static final int SKILL_MP_COST = 20;
     private static final int SKILL_DAMAGE_BONUS = 22;
 
     public Mage(String name) {

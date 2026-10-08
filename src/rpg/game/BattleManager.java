@@ -4,6 +4,8 @@ import rpg.model.character.player.Player;
 import rpg.model.character.monster.Monster;
 import rpg.model.item.Item;
 import rpg.model.item.BattleUsable;
+import java.util.Random;
+import rpg.model.character.monster.MonsterSkillResult;
 
 public class BattleManager {
 
@@ -13,6 +15,8 @@ public class BattleManager {
     private boolean battleOver;
     private boolean escaped;
     private boolean rewardGiven;
+    private final Random random = new Random();
+    private int playerStunTurns = 0;
 
     public BattleManager(Player player, Monster monster) {
 
@@ -57,6 +61,34 @@ public class BattleManager {
     }
 
     // -------------------------
+    // Stun Handling
+    // -------------------------
+
+    public boolean isPlayerStunned() {
+        return !battleOver && playerStunTurns > 0;
+    }
+
+    public String skipStunnedTurn() {
+        if (battleOver) {
+            return "The battle is already over.";
+        }
+
+        if (!isPlayerStunned()) {
+            return "Player is not stunned.";
+        }
+
+        playerStunTurns--;
+
+        String message = player.getName()
+                + " is stunned and misses a turn.";
+
+        // Normal attack only: avoid immediate stun chaining.
+        message += "\n" + monsterTurn(false);
+
+        return message;
+    }
+
+    // -------------------------
     // Player Attack
     // -------------------------
 
@@ -64,6 +96,10 @@ public class BattleManager {
 
         if (battleOver) {
             return "The battle is already over.";
+        }
+
+        if (isPlayerStunned()) {
+            return skipStunnedTurn();
         }
 
         int damage = player.attack(monster);
@@ -96,6 +132,10 @@ public class BattleManager {
 
         if (battleOver) {
             return "The battle is already over.";
+        }
+
+        if (isPlayerStunned()) {
+            return skipStunnedTurn();
         }
 
         int damage = player.useSkill(monster);
@@ -136,6 +176,10 @@ public class BattleManager {
 
         if (battleOver) {
             return "The battle is already over.";
+        }
+
+        if (isPlayerStunned()) {
+            return skipStunnedTurn();
         }
 
         if (item == null) {
@@ -259,21 +303,57 @@ public class BattleManager {
     // Monster Turn
     // -------------------------
 
+
     private String monsterTurn() {
+        return monsterTurn(true);
+    }
+
+    private String monsterTurn(boolean allowSpecialSkill) {
 
         if (battleOver || !monster.isAlive()) {
             return "";
         }
 
-        int damage = monster.attack(player);
+        String message;
 
-        String message =
-                monster.getName()
-                + " attacks "
-                + player.getName()
-                + " for "
-                + damage
-                + " damage.";
+        MonsterSkillResult skillResult = null;
+
+        // Try Special Skill
+        if (allowSpecialSkill
+                && random.nextInt(100)
+                        < monster.getSpecialSkillChance()) {
+
+            skillResult = monster.useSpecialSkill(player);
+        }
+
+        if (skillResult != null) {
+
+            message = skillResult.getMessage();
+
+            // Apply Stun only if player survives.
+            if (skillResult.isPlayerStunned()
+                    && player.isAlive()) {
+
+                playerStunTurns = 1;
+
+                message += "\n"
+                        + player.getName()
+                        + " is stunned for 1 turn!";
+            }
+
+        } else {
+
+            // Normal Attack
+            int damage = monster.attack(player);
+
+            message =
+                    monster.getName()
+                    + " attacks "
+                    + player.getName()
+                    + " for "
+                    + damage
+                    + " damage.";
+        }
 
         if (!player.isAlive()) {
 
@@ -287,6 +367,8 @@ public class BattleManager {
         return message;
     }
 
+
+
     // -------------------------
     // Escape
     // -------------------------
@@ -295,6 +377,10 @@ public class BattleManager {
 
         if (battleOver) {
             return "The battle is already over.";
+        }
+
+        if (isPlayerStunned()) {
+            return skipStunnedTurn();
         }
 
         if (!monster.canEscape()) {

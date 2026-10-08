@@ -31,7 +31,12 @@ public class Shop {
     // Default Shop Items
     // -------------------------
 
-    private void createDefaultItems() {
+
+        private void createDefaultItems() {
+
+        // -------------------------
+        // Weapons
+        // -------------------------
 
         itemsForSale.add(
                 new Weapon(
@@ -39,7 +44,7 @@ public class Shop {
                         "A lightweight weapon usable by every class.",
                         100,
                         50,
-                        2,
+                        5,
                         WeaponType.DAGGER
                 )
         );
@@ -50,7 +55,7 @@ public class Shop {
                         "A powerful sword for Knights.",
                         250,
                         125,
-                        6,
+                        10,
                         WeaponType.SWORD
                 )
         );
@@ -61,7 +66,7 @@ public class Shop {
                         "A ranged weapon for Archers.",
                         250,
                         125,
-                        6,
+                        10,
                         WeaponType.BOW
                 )
         );
@@ -72,53 +77,50 @@ public class Shop {
                         "A magical weapon for Mages.",
                         250,
                         125,
-                        6,
+                        10,
                         WeaponType.STAFF
                 )
         );
 
-        itemsForSale.add(
-            new Armor(
-                    "Wooden Shield",
-                    "A simple wooden shield usable by every class.",
-                    120,
-                    60,
-                    2,
-                    ArmorType.WOODEN_SHIELD
-            )
-        );    
+        // -------------------------
+        // Armor
+        // -------------------------
 
         itemsForSale.add(
-            new Armor(
-                    "Iron Shield",
-                    "A heavy shield usable only by Knights.",
-                    280,
-                    140,
-                    5,
-                    ArmorType.IRON_SHIELD
-            )
+                new Armor(
+                        "Wooden Shield",
+                        "A simple wooden shield usable by every class.",
+                        120,
+                        60,
+                        7,
+                        ArmorType.WOODEN_SHIELD
+                )
         );
 
         itemsForSale.add(
-                new SmallHealthPotion()
+                new Armor(
+                        "Iron Shield",
+                        "A heavy shield usable only by Knights.",
+                        280,
+                        140,
+                        12,
+                        ArmorType.IRON_SHIELD
+                )
         );
 
-        itemsForSale.add(
-                new HealthPotion()
-        );
+        // -------------------------
+        // Consumables
+        // -------------------------
 
-        itemsForSale.add(
-                new SmallManaPotion()
-        );
+        itemsForSale.add(new SmallHealthPotion());
+        itemsForSale.add(new HealthPotion());
 
-        itemsForSale.add(
-                new ManaPotion()
-        );
+        itemsForSale.add(new SmallManaPotion());
+        itemsForSale.add(new ManaPotion());
 
-        itemsForSale.add(
-                new Bomb()
-        );
-    }
+        itemsForSale.add(new Bomb());
+        }
+
 
     // -------------------------
     // Getters

@@ -11,9 +11,9 @@ public class Archer extends Player {
     private static final int STARTING_HP = 100;
     private static final int STARTING_MP = 40;
     private static final int STARTING_ATTACK = 24;
-    private static final int STARTING_DEFENSE = 10;
+    private static final int STARTING_DEFENSE = 15;
 
-    private static final int SKILL_MP_COST = 7;
+    private static final int SKILL_MP_COST = 14;
     private static final int SKILL_DAMAGE_BONUS = 15;
 
     public Archer(String name) {

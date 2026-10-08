@@ -1,15 +1,16 @@
 package rpg.model.character.monster;
 
 import rpg.model.item.Item;
+import rpg.model.character.player.Player;
 
 public class DarkMage extends Monster {
 
-    private static final int HP = 220;
+    private static final int HP = 500;
     private static final int MP = 100;
     private static final int ATTACK = 30;
-    private static final int DEFENSE = 15;
+    private static final int DEFENSE = 20;
 
-    private static final int EXP_REWARD = 300;
+    private static final int EXP_REWARD = 200;
     private static final int GOLD_REWARD = 200;
 
     public DarkMage() {
@@ -30,4 +31,65 @@ public class DarkMage extends Monster {
     public Item generateDrop() {
         return null;
     }
+
+    private static final int SPECIAL_SKILL_CHANCE = 30;
+    private static final int DARK_BARRIER_BONUS = 15;
+
+    private boolean darkBarrierActive = false;
+
+    @Override
+    public int getSpecialSkillChance() {
+        return SPECIAL_SKILL_CHANCE;
+    }
+
+    @Override
+    public MonsterSkillResult useSpecialSkill(Player player) {
+
+        if (player == null
+                || !player.isAlive()
+                || !isAlive()) {
+            return null;
+        }
+
+        // Deal bonus damage to player
+        int actualDamage = player.takeSpecialDamage(
+                getAttack(),
+                DARK_BARRIER_BONUS
+        );
+
+        // Activate protective barrier
+        darkBarrierActive = true;
+
+        String message =
+                getName()
+                + " uses Dark Barrier on "
+                + player.getName()
+                + " for "
+                + actualDamage
+                + " damage!"
+                + "\nDark Mage creates a magical barrier!"
+                + "\nThe next incoming hit is reduced by 60%.";
+
+        return new MonsterSkillResult(message);
+    }
+
+    @Override
+    protected int modifyFinalDamage(int damage) {
+
+        // No barrier: take normal damage
+        if (!darkBarrierActive) {
+            return damage;
+        }
+
+        // Consume barrier after one hit
+        darkBarrierActive = false;
+
+        // Reduce incoming damage by 60%
+        int reducedDamage = (int) Math.ceil(
+                damage * 0.40
+        );
+
+        return Math.max(1, reducedDamage);
+    }
+
 }

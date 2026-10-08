@@ -161,11 +161,17 @@ public abstract class Player extends Character {
         }
     }
 
+
     private void levelUp() {
 
         level++;
 
+        // Increase stats based on player class
         applyLevelUpStats();
+
+        // Fully restore HP and MP
+        heal(getMaxHp());
+        restoreMp(getMaxMp());
     }
 
     protected abstract void applyLevelUpStats();

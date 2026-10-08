@@ -10,9 +10,9 @@ public class Knight extends Player {
     private static final int STARTING_HP = 120;
     private static final int STARTING_MP = 30;
     private static final int STARTING_ATTACK = 20;
-    private static final int STARTING_DEFENSE = 15;
+    private static final int STARTING_DEFENSE = 30;
 
-    private static final int SKILL_MP_COST = 5;
+    private static final int SKILL_MP_COST = 8;
     private static final int SKILL_DAMAGE_BONUS = 10;
 
     public Knight(String name) {

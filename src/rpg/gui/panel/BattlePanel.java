@@ -136,6 +136,17 @@ public class BattlePanel extends JPanel {
             return;
         }
 
+        if (battle.isPlayerStunned()) {
+
+        String result = battle.skipStunnedTurn();
+
+        addBattleLog(result);
+        refreshBattleInfo();
+        checkBattleResult();
+
+        return;
+        }
+
         Player player =
                 battle.getPlayer();
 
@@ -427,6 +438,9 @@ public class BattlePanel extends JPanel {
 
             gameFrame.finishCurrentBattle();
         }
+        else {
+                checkBattleResult();
+        }
     }
 
     // -------------------------
@@ -547,4 +561,7 @@ public class BattlePanel extends JPanel {
         itemButton.setEnabled(false);
         escapeButton.setEnabled(false);
     }
+    
+    
+
 }
