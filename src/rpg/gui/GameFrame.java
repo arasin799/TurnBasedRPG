@@ -13,6 +13,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.plaf.basic.BasicProgressBarUI;
 import javax.swing.SwingConstants;
 
 import rpg.game.Game;
@@ -24,6 +26,7 @@ import rpg.gui.panel.ShopPanel;
 import rpg.gui.panel.GameResultPanel;
 import rpg.gui.panel.StageVictoryPanel;
 import rpg.gui.panel.StageSelectPanel;
+import rpg.gui.panel.StageHubPanel;
 
 public class GameFrame extends JFrame {
 
@@ -41,8 +44,9 @@ public class GameFrame extends JFrame {
     private JLabel attackLabel;
     private JLabel defenseLabel;
 
-    private JLabel stageLabel;
-    private JLabel monsterLabel;
+    private JProgressBar hpBar;
+    private JProgressBar mpBar;
+    private JProgressBar expBar;
 
     private JButton battleButton;
     private JButton selectStageButton;
@@ -53,7 +57,7 @@ public class GameFrame extends JFrame {
 
     private CardLayout centerLayout;
     private JPanel centerPanel;
-    private JPanel hubPanel;
+    private StageHubPanel hubPanel;
     private JPanel bottomNavigationPanel;
 
     // Remove old battle panels before showing a new challenge.
@@ -86,7 +90,7 @@ public class GameFrame extends JFrame {
 
     private void initializeFrame() {
 
-        setTitle("Turn-Based RPG");
+        setTitle("Hero's Journey");
 
         setDefaultCloseOperation(
                 JFrame.EXIT_ON_CLOSE
@@ -120,16 +124,6 @@ public class GameFrame extends JFrame {
         attackLabel = new JLabel();
         defenseLabel = new JLabel();
 
-        stageLabel = new JLabel(
-                "",
-                SwingConstants.CENTER
-        );
-
-        monsterLabel = new JLabel(
-                "",
-                SwingConstants.CENTER
-        );
-
         battleButton =
                 new JButton("Battle");
 
@@ -154,190 +148,113 @@ public class GameFrame extends JFrame {
     // -------------------------
 
     private void createLayout() {
+        getContentPane().setBackground(GameTheme.BACKGROUND);
+        setLayout(new BorderLayout(0, 0));
 
-        setLayout(
-                new BorderLayout(
-                        10,
-                        10
-                )
-        );
+        // Persistent HUD: visible in hub, battle, shop and inventory.
+        JPanel statusPanel = new JPanel(new BorderLayout(0, 8));
+        statusPanel.setBackground(GameTheme.PANEL);
+        statusPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 2, 0, GameTheme.GOLD),
+                BorderFactory.createEmptyBorder(11, 18, 10, 18)));
 
-        // -------------------------
-        // Player Status
-        // -------------------------
-
-        JPanel statusPanel =
-                new JPanel(
-                        new GridLayout(
-                                2,
-                                1,
-                                5,
-                                5
-                        )
-                );
-
-        statusPanel.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Player Status"
-                )
-        );
-
-        JPanel topStatus =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                4,
-                                10,
-                                0
-                        )
-                );
-
+        JPanel topStatus = new JPanel(new GridLayout(1, 4, 10, 0));
+        topStatus.setOpaque(false);
+        styleStatusLabel(nameLabel, GameTheme.TEXT, 14);
+        styleStatusLabel(classLabel, GameTheme.MUTED, 12);
+        styleStatusLabel(levelLabel, GameTheme.TEXT, 12);
+        styleStatusLabel(goldLabel, GameTheme.GOLD, 12);
         topStatus.add(nameLabel);
         topStatus.add(classLabel);
         topStatus.add(levelLabel);
         topStatus.add(goldLabel);
 
-        JPanel bottomStatus =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                5,
-                                10,
-                                0
-                        )
-                );
+        hpBar = createProgressBar(new java.awt.Color(205, 91, 108));
+        mpBar = createProgressBar(new java.awt.Color(103, 166, 239));
+        expBar = createProgressBar(new java.awt.Color(226, 183, 93));
 
-        bottomStatus.add(hpLabel);
-        bottomStatus.add(mpLabel);
-        bottomStatus.add(attackLabel);
-        bottomStatus.add(defenseLabel);
-        bottomStatus.add(expLabel);
+        JPanel bottomStatus = new JPanel(new GridLayout(1, 5, 10, 0));
+        bottomStatus.setOpaque(false);
+        bottomStatus.add(makeProgressInfo(hpLabel, hpBar));
+        bottomStatus.add(makeProgressInfo(mpLabel, mpBar));
+        bottomStatus.add(makeStatInfo(attackLabel));
+        bottomStatus.add(makeStatInfo(defenseLabel));
+        bottomStatus.add(makeProgressInfo(expLabel, expBar));
+        statusPanel.add(topStatus, BorderLayout.NORTH);
+        statusPanel.add(bottomStatus, BorderLayout.CENTER);
 
-        statusPanel.add(topStatus);
-        statusPanel.add(bottomStatus);
+        hubPanel = new StageHubPanel(game);
+        centerLayout = new CardLayout();
+        centerPanel = new JPanel(centerLayout);
+        centerPanel.setBackground(GameTheme.BACKGROUND);
+        centerPanel.add(hubPanel, "HUB");
 
-        // -------------------------
-        // Stage Area
-        // -------------------------
-
-        hubPanel =
-                new JPanel(
-                        new GridLayout(
-                                2,
-                                1,
-                                10,
-                                10
-                        )
-                );
-
-        hubPanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        60,
-                        100,
-                        60,
-                        100
-                )
-        );
-
-        stageLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        28
-                )
-        );
-
-        monsterLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        22
-                )
-        );
-
-        hubPanel.add(stageLabel);
-        hubPanel.add(monsterLabel);
-
-        centerLayout =
-                new CardLayout();
-
-        centerPanel =
-                new JPanel(
-                        centerLayout
-                );
-
-        centerPanel.add(
-                hubPanel,
-                "HUB"
-        );
-
-        // -------------------------
-        // Action Buttons
-        // -------------------------
-
-        JPanel actionPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                5,
-                                10,
-                                0
-                        )
-                );
-
+        JPanel actionPanel = new JPanel(new GridLayout(1, 5, 10, 0));
+        actionPanel.setOpaque(false);
+        styleNav(battleButton, true);
+        styleNav(selectStageButton, false);
+        styleNav(inventoryButton, false);
+        styleNav(shopButton, false);
+        styleNav(saveButton, false);
         actionPanel.add(battleButton);
         actionPanel.add(selectStageButton);
         actionPanel.add(inventoryButton);
         actionPanel.add(shopButton);
         actionPanel.add(saveButton);
 
-        JPanel southPanel =
-                new JPanel(
-                        new BorderLayout(
-                                10,
-                                10
-                        )
-                );
-
-        southPanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        10,
-                        30,
-                        25,
-                        30
-                )
-        );
-
-        southPanel.add(
-                actionPanel,
-                BorderLayout.CENTER
-        );
-
-        southPanel.add(
-                mainMenuButton,
-                BorderLayout.SOUTH
-        );
-
+        JPanel southPanel = new JPanel(new BorderLayout(0, 9));
+        southPanel.setBackground(GameTheme.BACKGROUND);
+        southPanel.setBorder(BorderFactory.createEmptyBorder(9, 20, 17, 20));
+        southPanel.add(actionPanel, BorderLayout.CENTER);
+        GameTheme.styleButton(mainMenuButton, false);
+        mainMenuButton.setFont(new Font("Monospaced", Font.BOLD, 12));
+        mainMenuButton.setPreferredSize(new Dimension(0, 31));
+        southPanel.add(mainMenuButton, BorderLayout.SOUTH);
         bottomNavigationPanel = southPanel;
 
-        // -------------------------
-        // Add to Frame
-        // -------------------------
+        add(statusPanel, BorderLayout.NORTH);
+        add(centerPanel, BorderLayout.CENTER);
+        add(southPanel, BorderLayout.SOUTH);
+    }
 
-        add(
-                statusPanel,
-                BorderLayout.NORTH
-        );
+    private void styleStatusLabel(JLabel label, java.awt.Color color, int size) {
+        label.setFont(new Font("Monospaced", Font.BOLD, size));
+        label.setForeground(color);
+    }
 
-        add(
-                centerPanel,
-                BorderLayout.CENTER
-        );
+    private JProgressBar createProgressBar(java.awt.Color color) {
+        JProgressBar bar = new JProgressBar();
+        bar.setUI(new BasicProgressBarUI());
+        bar.setMinimum(0);
+        bar.setStringPainted(false);
+        bar.setForeground(color);
+        bar.setBackground(new java.awt.Color(13, 21, 37));
+        bar.setBorder(BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 1));
+        bar.setPreferredSize(new Dimension(60, 10));
+        return bar;
+    }
 
-        add(
-                southPanel,
-                BorderLayout.SOUTH
-        );
+    private JPanel makeProgressInfo(JLabel label, JProgressBar bar) {
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setOpaque(false);
+        styleStatusLabel(label, GameTheme.TEXT, 11);
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(bar, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel makeStatInfo(JLabel label) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        styleStatusLabel(label, GameTheme.MUTED, 12);
+        panel.add(label, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void styleNav(JButton button, boolean primary) {
+        GameTheme.styleButton(button, primary);
+        button.setFont(new Font("Monospaced", Font.BOLD, 13));
+        button.setPreferredSize(new Dimension(125, 42));
     }
 
     // -------------------------
@@ -436,15 +353,18 @@ public class GameFrame extends JFrame {
                         + player.getExpToNextLevel()
         );
 
+        hpBar.setMaximum(Math.max(1, player.getMaxHp()));
+        hpBar.setValue(player.getHp());
+        mpBar.setMaximum(Math.max(1, player.getMaxMp()));
+        mpBar.setValue(player.getMp());
+        expBar.setMaximum(Math.max(1, player.getExpToNextLevel()));
+        expBar.setValue(player.getExperience());
+
         int unlockedCount = game.getUnlockedStageCount();
         if (selectedStage < 0 || selectedStage >= unlockedCount) {
             selectedStage = unlockedCount - 1;
         }
-
-        stageLabel.setText("Selected Stage " + (selectedStage + 1));
-        String status = selectedStage < game.getStage()
-                ? " [Cleared - Replay]" : " [New]";
-        monsterLabel.setText("Enemy: " + game.getStageName(selectedStage) + status);
+        hubPanel.setSelectedStage(selectedStage);
 
         battleButton.setEnabled(player.isAlive());
         selectStageButton.setEnabled(player.isAlive());
