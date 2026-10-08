@@ -6,6 +6,9 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.function.Supplier;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -40,6 +43,11 @@ public class BattlePanel extends JPanel {
     private JProgressBar playerMpBar;
     private JProgressBar monsterHpBar;
     private JTextArea battleLog;
+    private BattleArenaPanel arena;
+    private static final Pattern DAMAGE_PATTERN =
+            Pattern.compile("for (\\d+) damage[.!]");
+    private static final Pattern RECOVERY_PATTERN =
+            Pattern.compile("Restored (\\d+) (HP|MP)\\.");
     private JButton attackButton;
     private JButton skillButton;
     private JButton itemButton;
@@ -123,7 +131,7 @@ public class BattlePanel extends JPanel {
         topPanel.add(monsterCard);
         add(topPanel, BorderLayout.NORTH);
 
-        BattleArenaPanel arena = new BattleArenaPanel(battle);
+        arena = new BattleArenaPanel(battle);
         JPanel midPanel = new JPanel(new BorderLayout(0, 7));
         midPanel.setOpaque(false);
         midPanel.add(arena, BorderLayout.NORTH);
@@ -178,31 +186,81 @@ public class BattlePanel extends JPanel {
         escapeButton.addActionListener(e -> escape());
     }
 
-    private void renderAction(String result) {
+    private void performAction(Supplier<String> action) {
+        if (battle.isBattleOver()) {
+            return;
+        }
+        // Prevent double-clicking while one action's visual sequence plays.
+        setActionButtonsEnabled(false);
+        String result = action.get();
         addBattleLog(result);
         refreshBattleInfo();
-        checkBattleResult();
+        enqueueEffectsFromLog(result);
+        arena.playQueuedEffects(() -> {
+            if (battle.isBattleOver()) {
+                checkBattleResult();
+            } else {
+                setActionButtonsEnabled(true);
+            }
+        });
+    }
+
+    /** Read battle messages for visuals only. No stats/rewards are changed here. */
+    private void enqueueEffectsFromLog(String result) {
+        String hero = battle.getPlayer().getName();
+        String enemy = battle.getMonster().getName();
+        for (String rawLine : result.split("\\R")) {
+            String line = rawLine.trim();
+            Matcher damage = DAMAGE_PATTERN.matcher(line);
+            if (damage.find()) {
+                int amount = Integer.parseInt(damage.group(1));
+                if (line.startsWith(enemy + " attacks ")
+                        || line.startsWith(enemy + " uses ")) {
+                    arena.queueDamage(true, amount, line.contains(" uses "));
+                } else if (line.startsWith(hero + " attacks ")
+                        || line.startsWith(hero + " uses ")) {
+                    arena.queueDamage(false, amount, line.contains(" uses "));
+                }
+            }
+            Matcher recovery = RECOVERY_PATTERN.matcher(line);
+            if (recovery.find()) {
+                arena.queueRecovery(Integer.parseInt(recovery.group(1)),
+                        recovery.group(2).equals("MP"));
+            }
+            if (line.contains("is stunned and misses a turn")) {
+                arena.queueStatus(true, "TURN SKIPPED");
+            } else if (line.contains("is stunned for 1 turn")) {
+                arena.queueStatus(true, "STUNNED!");
+            } else if (line.contains("fades into mist")) {
+                arena.queueStatus(false, "FADE 50%");
+            } else if (line.contains("creates a magical barrier")) {
+                arena.queueStatus(false, "BARRIER 50%");
+            }
+        }
+    }
+
+    private void setActionButtonsEnabled(boolean enabled) {
+        attackButton.setEnabled(enabled);
+        skillButton.setEnabled(enabled);
+        itemButton.setEnabled(enabled);
+        escapeButton.setEnabled(enabled && !battle.getMonster().isBoss());
     }
 
     private void attack() {
-        if (!battle.isBattleOver()) {
-            renderAction(battle.playerAttack());
-        }
+        performAction(() -> battle.playerAttack());
     }
 
     private void useSkill() {
-        if (!battle.isBattleOver()) {
-            renderAction(battle.playerUseSkill());
-        }
+        performAction(() -> battle.playerUseSkill());
     }
 
     private void useItem() {
         if (battle.isBattleOver()) {
             return;
         }
-        // Stun consumes the next turn before opening the inventory dialog.
+        // Never open the item dialog or spend an item when stunned.
         if (battle.isPlayerStunned()) {
-            renderAction(battle.skipStunnedTurn());
+            performAction(() -> battle.skipStunnedTurn());
             return;
         }
 
@@ -222,7 +280,7 @@ public class BattlePanel extends JPanel {
                 this, "Choose an item:", "Use Item", JOptionPane.PLAIN_MESSAGE,
                 null, usableItems.toArray(), usableItems.get(0));
         if (selected != null) {
-            renderAction(battle.playerUseItem(selected));
+            performAction(() -> battle.playerUseItem(selected));
         }
     }
 
@@ -230,16 +288,22 @@ public class BattlePanel extends JPanel {
         if (battle.isBattleOver()) {
             return;
         }
-        String message = battle.escape();
-        addBattleLog(message);
+        setActionButtonsEnabled(false);
+        String result = battle.escape();
+        addBattleLog(result);
         refreshBattleInfo();
-        if (battle.hasEscaped()) {
-            JOptionPane.showMessageDialog(this, "You escaped from the battle.",
-                    "Escape", JOptionPane.INFORMATION_MESSAGE);
-            gameFrame.finishCurrentBattle();
-        } else {
-            checkBattleResult();
-        }
+        enqueueEffectsFromLog(result);
+        arena.playQueuedEffects(() -> {
+            if (battle.hasEscaped()) {
+                JOptionPane.showMessageDialog(this, "You escaped from the battle.",
+                        "Escape", JOptionPane.INFORMATION_MESSAGE);
+                gameFrame.finishCurrentBattle();
+            } else if (battle.isBattleOver()) {
+                checkBattleResult();
+            } else {
+                setActionButtonsEnabled(true);
+            }
+        });
     }
 
     private void checkBattleResult() {

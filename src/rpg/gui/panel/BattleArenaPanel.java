@@ -1,5 +1,6 @@
 package rpg.gui.panel;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -7,6 +8,10 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.util.ArrayDeque;
+import java.util.Queue;
+
+import javax.swing.Timer;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +32,90 @@ public class BattleArenaPanel extends JPanel {
     private final BattleManager battle;
     private final BufferedImage playerSprite;
     private final BufferedImage monsterSprite;
+
+    // UI-only effects. The damage itself is calculated by BattleManager.
+    private static final class BattleEffect {
+        final boolean onPlayer;
+        final String text;
+        final Color color;
+        final boolean skill;
+
+        BattleEffect(boolean onPlayer, String text, Color color, boolean skill) {
+            this.onPlayer = onPlayer;
+            this.text = text;
+            this.color = color;
+            this.skill = skill;
+        }
+    }
+
+    private final Queue<BattleEffect> effectQueue = new ArrayDeque<>();
+    private BattleEffect activeEffect;
+    private Timer effectTimer;
+    private Runnable effectsFinished;
+    private int effectTick;
+
+    public void queueDamage(boolean onPlayer, int damage, boolean special) {
+        if (damage > 0) {
+            effectQueue.add(new BattleEffect(onPlayer, "-" + damage,
+                    special ? GameTheme.GOLD : new Color(245, 130, 132), special));
+        }
+    }
+
+    public void queueRecovery(int amount, boolean mana) {
+        if (amount > 0) {
+            effectQueue.add(new BattleEffect(true, "+" + amount + (mana ? " MP" : " HP"),
+                    mana ? new Color(119, 176, 250) : new Color(105, 220, 153), false));
+        }
+    }
+
+    public void queueStatus(boolean onPlayer, String label) {
+        effectQueue.add(new BattleEffect(onPlayer, label,
+                onPlayer ? new Color(255, 171, 110) : new Color(198, 165, 254), true));
+    }
+
+    /** Run visual events sequentially. Battle logic is never delayed or altered. */
+    public void playQueuedEffects(Runnable onComplete) {
+        effectsFinished = onComplete;
+        showNextEffect();
+    }
+
+    private void showNextEffect() {
+        if (effectTimer != null) {
+            effectTimer.stop();
+            effectTimer = null;
+        }
+        activeEffect = effectQueue.poll();
+        effectTick = 0;
+        if (activeEffect == null) {
+            repaint();
+            Runnable callback = effectsFinished;
+            effectsFinished = null;
+            if (callback != null) {
+                callback.run();
+            }
+            return;
+        }
+        effectTimer = new Timer(40, event -> {
+            effectTick++;
+            repaint();
+            if (effectTick >= 13) {
+                showNextEffect();
+            }
+        });
+        effectTimer.start();
+        repaint();
+    }
+
+    @Override
+    public void removeNotify() {
+        if (effectTimer != null) {
+            effectTimer.stop();
+            effectTimer = null;
+        }
+        effectQueue.clear();
+        effectsFinished = null;
+        super.removeNotify();
+    }
 
     public BattleArenaPanel(BattleManager battle) {
         this.battle = battle;
@@ -101,7 +190,37 @@ public class BattleArenaPanel extends JPanel {
         String versus = "VS";
         int tw = g.getFontMetrics().stringWidth(versus);
         g.drawString(versus, (w - tw) / 2, Math.max(34, h / 2));
+        paintActiveEffect(g, w, h, leftX, rightX);
         g.dispose();
+    }
+
+    private void paintActiveEffect(Graphics2D g, int w, int h, int leftX, int rightX) {
+        if (activeEffect == null) {
+            return;
+        }
+        int x = activeEffect.onPlayer ? leftX : rightX;
+        float alpha = Math.max(0.18f, 1.0f - effectTick / 16.0f);
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+
+        // Brief square hit flash: pixel-style rather than smooth circles.
+        if (effectTick <= 5) {
+            g.setColor(new Color(activeEffect.color.getRed(),
+                    activeEffect.color.getGreen(), activeEffect.color.getBlue(), 55));
+            int flashSize = 78 + effectTick * 3;
+            g.fillRect(x - flashSize / 2, Math.max(6, h - flashSize - 28),
+                    flashSize, flashSize);
+        }
+
+        String text = activeEffect.text;
+        g.setFont(new Font("Monospaced", Font.BOLD, text.length() > 12 ? 15 : 21));
+        int textWidth = g.getFontMetrics().stringWidth(text);
+        int y = Math.max(30, h - 76 - effectTick * 2);
+        int width = textWidth + 16;
+        g.setColor(new Color(10, 15, 29, 220));
+        g.fillRect(x - width / 2, y - 24, width, 31);
+        g.setColor(activeEffect.color);
+        g.drawString(text, x - textWidth / 2, y);
+        g.setComposite(AlphaComposite.SrcOver);
     }
 
     private void drawPlatform(Graphics2D g, int x, int y) {
