@@ -26,7 +26,7 @@ public class Rat extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                GOLD_REWARD,
+                rollGold(10, 30),
                 false
         );
     }

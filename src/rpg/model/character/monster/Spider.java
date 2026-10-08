@@ -26,7 +26,7 @@ public class Spider extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                GOLD_REWARD,
+                rollGold(30, 50),
                 false
         );
     }

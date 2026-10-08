@@ -26,7 +26,7 @@ public class Ghost extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                GOLD_REWARD,
+                rollGold(50, 80),
                 false
         );
     }

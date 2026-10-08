@@ -35,6 +35,16 @@ public abstract class Monster extends Character {
         this.boss = boss;
     }
 
+    // Each encounter rolls Gold once; getters then return a stable reward.
+    protected static int rollGold(int minGold, int maxGold) {
+        if (minGold < 0 || maxGold < minGold) {
+            throw new IllegalArgumentException("Invalid Gold reward range");
+        }
+
+        return java.util.concurrent.ThreadLocalRandom.current()
+                .nextInt(minGold, maxGold + 1);
+    }
+
     // -------------------------
     // Reward Getters
     // -------------------------

@@ -28,7 +28,7 @@ public class Cyclops extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                GOLD_REWARD,
+                rollGold(80, 120),
                 false
         );
     }

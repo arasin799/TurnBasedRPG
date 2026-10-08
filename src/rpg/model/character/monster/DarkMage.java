@@ -22,7 +22,7 @@ public class DarkMage extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                GOLD_REWARD,
+                rollGold(170, 230),
                 true
         );
     }
