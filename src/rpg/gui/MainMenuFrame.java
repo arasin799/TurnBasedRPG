@@ -41,16 +41,16 @@ public class MainMenuFrame extends JFrame {
 
     private void initializeFrame() {
 
-        setTitle("Turn-Based RPG");
+        setTitle("Hero's Journey");
 
         setDefaultCloseOperation(
                 JFrame.EXIT_ON_CLOSE
         );
 
-        setSize(500, 400);
+        setSize(750, 520);
 
         setMinimumSize(
-                new Dimension(500, 400)
+                new Dimension(750, 520)
         );
 
         setLocationRelativeTo(null);
@@ -72,6 +72,10 @@ public class MainMenuFrame extends JFrame {
 
         exitButton =
                 new JButton("Exit");
+
+        GameTheme.styleButton(newGameButton, true);
+        GameTheme.styleButton(loadGameButton, false);
+        GameTheme.styleButton(exitButton, false);
     }
 
     // -------------------------
@@ -80,73 +84,51 @@ public class MainMenuFrame extends JFrame {
 
     private void createLayout() {
 
-        setLayout(
-                new BorderLayout()
-        );
+        JPanel background = GameTheme.createBackdrop();
+        background.setLayout(new BorderLayout());
 
-        JLabel titleLabel =
-                new JLabel(
-                        "TURN-BASED RPG",
-                        SwingConstants.CENTER
-                );
+        JPanel menu = new JPanel();
+        menu.setOpaque(false);
+        menu.setLayout(new javax.swing.BoxLayout(
+                menu, javax.swing.BoxLayout.Y_AXIS));
+        menu.setBorder(BorderFactory.createEmptyBorder(65, 30, 30, 30));
 
-        titleLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        28
-                )
-        );
+        JLabel titleLabel = new JLabel("HERO'S JOURNEY", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Monospaced", Font.BOLD, 38));
+        titleLabel.setForeground(GameTheme.GOLD);
+        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
 
-        titleLabel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        60,
-                        20,
-                        30,
-                        20
-                )
-        );
+        JLabel subtitleLabel = new JLabel(
+                "A TURN-BASED PIXEL RPG", SwingConstants.CENTER);
+        subtitleLabel.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        subtitleLabel.setForeground(GameTheme.MUTED);
+        subtitleLabel.setAlignmentX(CENTER_ALIGNMENT);
 
-        JPanel buttonPanel =
-                new JPanel(
-                        new GridLayout(
-                                3,
-                                1,
-                                10,
-                                15
-                        )
-                );
+        newGameButton.setAlignmentX(CENTER_ALIGNMENT);
+        loadGameButton.setAlignmentX(CENTER_ALIGNMENT);
+        exitButton.setAlignmentX(CENTER_ALIGNMENT);
 
-        buttonPanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        20,
-                        120,
-                        70,
-                        120
-                )
-        );
+        JLabel footerLabel = new JLabel(
+                "CHOOSE YOUR HERO  -  BEGIN YOUR ADVENTURE",
+                SwingConstants.CENTER);
+        footerLabel.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        footerLabel.setForeground(GameTheme.MUTED);
+        footerLabel.setAlignmentX(CENTER_ALIGNMENT);
 
-        buttonPanel.add(
-                newGameButton
-        );
+        menu.add(titleLabel);
+        menu.add(javax.swing.Box.createVerticalStrut(10));
+        menu.add(subtitleLabel);
+        menu.add(javax.swing.Box.createVerticalStrut(49));
+        menu.add(newGameButton);
+        menu.add(javax.swing.Box.createVerticalStrut(12));
+        menu.add(loadGameButton);
+        menu.add(javax.swing.Box.createVerticalStrut(12));
+        menu.add(exitButton);
+        menu.add(javax.swing.Box.createVerticalStrut(40));
+        menu.add(footerLabel);
 
-        buttonPanel.add(
-                loadGameButton
-        );
-
-        buttonPanel.add(
-                exitButton
-        );
-
-        add(
-                titleLabel,
-                BorderLayout.NORTH
-        );
-
-        add(
-                buttonPanel,
-                BorderLayout.CENTER
-        );
+        background.add(menu, BorderLayout.CENTER);
+        setContentPane(background);
     }
 
     // -------------------------
