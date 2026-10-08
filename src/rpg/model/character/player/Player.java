@@ -11,7 +11,7 @@ public abstract class Player extends Character {
     private int experience;
     private int gold;
 
-    // Charge is persistent across stages. Ultimate skill will be added next.
+    // Charge persists across battles and is spent by Ultimate skills.
     private static final int MAX_ULTIMATE_CHARGE = 5;
     private int ultimateCharge = 0;
 
@@ -74,6 +74,27 @@ public abstract class Player extends Character {
 
     public void restoreUltimateCharge(int savedCharge) {
         ultimateCharge = Math.max(0, Math.min(MAX_ULTIMATE_CHARGE, savedCharge));
+    }
+
+    public boolean isUltimateReady() {
+        return ultimateCharge == MAX_ULTIMATE_CHARGE;
+    }
+
+    public boolean canUseUltimate() {
+        return isAlive() && isUltimateReady() && getMp() >= getUltimateMpCost();
+    }
+
+    // One Ultimate consumes all five charges and the class-specific MP cost.
+    // Invalid attempts consume nothing. Ultimate itself gives no new charge.
+    public final int useUltimate(Character target) {
+        if (target == null || !target.isAlive() || !canUseUltimate()) {
+            return -1;
+        }
+        if (!consumeMp(getUltimateMpCost())) {
+            return -1;
+        }
+        ultimateCharge = 0;
+        return target.takeSpecialDamage(getAttack(), getUltimateDamageBonus());
     }
 
     public Weapon getEquippedWeapon() {
@@ -234,6 +255,12 @@ public abstract class Player extends Character {
     public abstract int useSkill(Character target);
 
     public abstract String getSkillName();
+
+    public abstract String getUltimateSkillName();
+
+    public abstract int getUltimateMpCost();
+
+    protected abstract int getUltimateDamageBonus();
 
     // -------------------------
     // PlayerState

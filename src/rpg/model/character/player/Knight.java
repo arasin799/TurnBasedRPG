@@ -44,6 +44,21 @@ public class Knight extends Player {
     }
 
     @Override
+    public String getUltimateSkillName() {
+        return "Divine Slash";
+    }
+
+    @Override
+    public int getUltimateMpCost() {
+        return 15;
+    }
+
+    @Override
+    protected int getUltimateDamageBonus() {
+        return 35;
+    }
+
+    @Override
     protected void applyLevelUpStats() {
 
         increaseMaxHp(15);

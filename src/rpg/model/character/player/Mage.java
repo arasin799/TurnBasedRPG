@@ -45,6 +45,21 @@ public class Mage extends Player {
     }
 
     @Override
+    public String getUltimateSkillName() {
+        return "Meteor Burst";
+    }
+
+    @Override
+    public int getUltimateMpCost() {
+        return 30;
+    }
+
+    @Override
+    protected int getUltimateDamageBonus() {
+        return 60;
+    }
+
+    @Override
     protected void applyLevelUpStats() {
 
         increaseMaxHp(7);

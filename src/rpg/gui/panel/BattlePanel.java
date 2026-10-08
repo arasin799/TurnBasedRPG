@@ -50,6 +50,7 @@ public class BattlePanel extends JPanel {
             Pattern.compile("Restored (\\d+) (HP|MP)\\.");
     private JButton attackButton;
     private JButton skillButton;
+    private JButton ultimateButton;
     private JButton itemButton;
     private JButton escapeButton;
 
@@ -62,6 +63,7 @@ public class BattlePanel extends JPanel {
         createLayout();
         registerEvents();
         refreshBattleInfo();
+        setActionButtonsEnabled(true);
         addBattleLog("Battle started! " + battle.getPlayer().getName()
                 + " VS " + battle.getMonster().getName());
     }
@@ -154,19 +156,22 @@ public class BattlePanel extends JPanel {
         midPanel.add(logScroll, BorderLayout.CENTER);
         add(midPanel, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new GridLayout(1, 4, 9, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 5, 7, 0));
         actions.setOpaque(false);
         actions.setPreferredSize(new Dimension(700, 45));
         attackButton = new JButton("ATTACK");
         skillButton = new JButton("SKILL");
+        ultimateButton = new JButton("ULTIMATE");
         itemButton = new JButton("USE ITEM");
         escapeButton = new JButton("ESCAPE");
         styleAction(attackButton, true);
         styleAction(skillButton, false);
+        styleAction(ultimateButton, false);
         styleAction(itemButton, false);
         styleAction(escapeButton, false);
         actions.add(attackButton);
         actions.add(skillButton);
+        actions.add(ultimateButton);
         actions.add(itemButton);
         actions.add(escapeButton);
         add(actions, BorderLayout.SOUTH);
@@ -174,7 +179,7 @@ public class BattlePanel extends JPanel {
 
     private void styleAction(JButton button, boolean primary) {
         GameTheme.styleButton(button, primary);
-        button.setFont(new Font("Monospaced", Font.BOLD, 13));
+        button.setFont(new Font("Monospaced", Font.BOLD, 12));
         button.setPreferredSize(new Dimension(135, 44));
         button.setMaximumSize(new Dimension(135, 44));
     }
@@ -182,6 +187,7 @@ public class BattlePanel extends JPanel {
     private void registerEvents() {
         attackButton.addActionListener(e -> attack());
         skillButton.addActionListener(e -> useSkill());
+        ultimateButton.addActionListener(e -> useUltimate());
         itemButton.addActionListener(e -> useItem());
         escapeButton.addActionListener(e -> escape());
     }
@@ -227,6 +233,9 @@ public class BattlePanel extends JPanel {
                 arena.queueRecovery(Integer.parseInt(recovery.group(1)),
                         recovery.group(2).equals("MP"));
             }
+            if (line.contains(" uses ULTIMATE ")) {
+                arena.queueStatus(false, "ULTIMATE!");
+            }
             if (line.contains("is stunned and misses a turn")) {
                 arena.queueStatus(true, "TURN SKIPPED");
             } else if (line.contains("is stunned for 1 turn")) {
@@ -242,6 +251,7 @@ public class BattlePanel extends JPanel {
     private void setActionButtonsEnabled(boolean enabled) {
         attackButton.setEnabled(enabled);
         skillButton.setEnabled(enabled);
+        ultimateButton.setEnabled(enabled && battle.getPlayer().canUseUltimate());
         itemButton.setEnabled(enabled);
         escapeButton.setEnabled(enabled && !battle.getMonster().isBoss());
     }
@@ -252,6 +262,10 @@ public class BattlePanel extends JPanel {
 
     private void useSkill() {
         performAction(() -> battle.playerUseSkill());
+    }
+
+    private void useUltimate() {
+        performAction(() -> battle.playerUseUltimate());
     }
 
     private void useItem() {
@@ -343,6 +357,10 @@ public class BattlePanel extends JPanel {
         setBar(monsterHpBar, monster.getHp(), monster.getMaxHp(), "HP");
         skillButton.setText(player.getSkillName().toUpperCase());
         skillButton.setToolTipText("Spend MP to use " + player.getSkillName());
+        ultimateButton.setText("ULTIMATE " + player.getUltimateCharge()
+                + "/" + player.getMaxUltimateCharge());
+        ultimateButton.setToolTipText(player.getUltimateSkillName()
+                + " | Costs " + player.getUltimateMpCost() + " MP and 5 charges.");
         if (monster.isBoss()) {
             escapeButton.setEnabled(false);
             escapeButton.setToolTipText("You cannot escape from a boss battle.");
@@ -363,6 +381,7 @@ public class BattlePanel extends JPanel {
     private void disableBattleButtons() {
         attackButton.setEnabled(false);
         skillButton.setEnabled(false);
+        ultimateButton.setEnabled(false);
         itemButton.setEnabled(false);
         escapeButton.setEnabled(false);
     }

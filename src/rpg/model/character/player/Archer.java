@@ -45,6 +45,21 @@ public class Archer extends Player {
     }
 
     @Override
+    public String getUltimateSkillName() {
+        return "Arrow Storm";
+    }
+
+    @Override
+    public int getUltimateMpCost() {
+        return 22;
+    }
+
+    @Override
+    protected int getUltimateDamageBonus() {
+        return 45;
+    }
+
+    @Override
     protected void applyLevelUpStats() {
 
         increaseMaxHp(10);

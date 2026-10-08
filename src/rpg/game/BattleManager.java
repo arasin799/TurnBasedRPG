@@ -178,6 +178,40 @@ public class BattleManager {
     }
 
     // -------------------------
+    // Player Ultimate
+    // -------------------------
+
+    public String playerUseUltimate() {
+        if (battleOver) {
+            return "The battle is already over.";
+        }
+        if (isPlayerStunned()) {
+            return skipStunnedTurn();
+        }
+        if (!player.isUltimateReady()) {
+            return "Not enough Ultimate charge (" + player.getUltimateCharge()
+                    + "/" + player.getMaxUltimateCharge() + ").";
+        }
+        if (player.getMp() < player.getUltimateMpCost()) {
+            return "Not enough MP to use " + player.getUltimateSkillName() + ".";
+        }
+
+        int damage = player.useUltimate(monster);
+        if (damage < 0) {
+            return "Could not use Ultimate.";
+        }
+
+        String message = player.getName() + " uses ULTIMATE "
+                + player.getUltimateSkillName() + " on "
+                + monster.getName() + " for " + damage + " damage!";
+
+        if (!monster.isAlive()) {
+            return message + "\n" + handleVictory();
+        }
+        return message + "\n" + monsterTurn();
+    }
+
+    // -------------------------
     // Player Use Item
     // -------------------------
 
