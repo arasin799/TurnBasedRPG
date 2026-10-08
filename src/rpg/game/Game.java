@@ -26,7 +26,9 @@ public class Game {
     private Player player;
     private Shop shop;
 
+    // Highest unlocked stage index (5 means all stages cleared).
     private int stage;
+    private int currentBattleStage = -1;
 
     private BattleManager currentBattle;
 
@@ -36,6 +38,7 @@ public class Game {
 
         this.player = null;
         this.stage = 0;
+        this.currentBattleStage = -1;
         this.currentBattle = null;
     }
 
@@ -53,6 +56,29 @@ public class Game {
 
     public int getStage() {
         return stage;
+    }
+
+    public int getStageCount() {
+        return FINAL_STAGE;
+    }
+
+    public int getUnlockedStageCount() {
+        return Math.min(FINAL_STAGE, stage + 1);
+    }
+
+    public int getCurrentBattleStage() {
+        return currentBattleStage;
+    }
+
+    public String getStageName(int stageIndex) {
+        switch (stageIndex) {
+            case 0: return "Rat";
+            case 1: return "Spider";
+            case 2: return "Ghost";
+            case 3: return "Cyclops";
+            case 4: return "Dark Mage";
+            default: throw new IllegalArgumentException("Invalid stage: " + stageIndex);
+        }
     }
 
     public BattleManager getCurrentBattle() {
@@ -82,6 +108,7 @@ public class Game {
                 );
 
         this.stage = 0;
+        this.currentBattleStage = -1;
         this.currentBattle = null;
     }
 
@@ -117,73 +144,46 @@ public class Game {
     // -------------------------
 
     public String getCurrentMonsterName() {
-
         if (isGameCompleted()) {
-            return "None";
+            return "All stages cleared";
         }
-
-        return createMonsterForCurrentStage()
-                .getName();
+        return getStageName(stage);
     }
 
+    // Kept for compatibility with any older callers.
     public BattleManager startBattle() {
+        return startBattle(stage);
+    }
 
+    // stageIndex: 0 = Rat, 1 = Spider, ..., 4 = Dark Mage.
+    public BattleManager startBattle(int stageIndex) {
         if (player == null) {
-
-            throw new IllegalStateException(
-                    "No game has been started."
-            );
+            throw new IllegalStateException("No game has been started.");
         }
-
         if (!player.isAlive()) {
-            throw new IllegalStateException(
-                    "The player has been defeated."
-            );
+            throw new IllegalStateException("The player has been defeated.");
+        }
+        if (currentBattle != null && !currentBattle.isBattleOver()) {
+            throw new IllegalStateException("A battle is already in progress.");
+        }
+        if (stageIndex < 0 || stageIndex >= FINAL_STAGE || stageIndex > stage) {
+            throw new IllegalStateException("This stage is locked.");
         }
 
-        if (isGameCompleted()) {
-
-            throw new IllegalStateException(
-                    "The game has already been completed."
-            );
-        }
-
-        Monster monster =
-                createMonsterForCurrentStage();
-
-        currentBattle =
-                new BattleManager(
-                        player,
-                        monster
-                );
-
+        Monster monster = createMonsterForStage(stageIndex);
+        currentBattle = new BattleManager(player, monster);
+        currentBattleStage = stageIndex;
         return currentBattle;
     }
 
-    private Monster createMonsterForCurrentStage() {
-
-        switch (stage) {
-
-            case 0:
-                return new Rat();
-
-            case 1:
-                return new Spider();
-
-            case 2:
-                return new Ghost();
-
-            case 3:
-                return new Cyclops();
-
-            case 4:
-                return new DarkMage();
-
-            default:
-                throw new IllegalStateException(
-                        "Invalid game stage: "
-                                + stage
-                );
+    private Monster createMonsterForStage(int stageIndex) {
+        switch (stageIndex) {
+            case 0: return new Rat();
+            case 1: return new Spider();
+            case 2: return new Ghost();
+            case 3: return new Cyclops();
+            case 4: return new DarkMage();
+            default: throw new IllegalArgumentException("Invalid stage: " + stageIndex);
         }
     }
 
@@ -192,27 +192,19 @@ public class Game {
     // -------------------------
 
     public boolean finishBattle() {
-
-        if (currentBattle == null) {
+        if (currentBattle == null || !currentBattle.isBattleOver()) {
             return false;
         }
 
-        if (!currentBattle.isBattleOver()) {
-            return false;
-        }
-
-        if (currentBattle.isVictory()) {
-
-            stage++;
-
-            currentBattle = null;
-
-            return true;
+        boolean won = currentBattle.isVictory();
+        if (won) {
+            // Replay farming must never reset or skip story progression.
+            stage = Math.max(stage, currentBattleStage + 1);
         }
 
         currentBattle = null;
-
-        return false;
+        currentBattleStage = -1;
+        return won;
     }
 
     // -------------------------
@@ -253,8 +245,9 @@ public class Game {
                 gameData.getPlayer();
 
         this.stage =
-                gameData.getStage();
+                Math.min(FINAL_STAGE, Math.max(0, gameData.getStage()));
 
+        this.currentBattleStage = -1;
         this.currentBattle = null;
     }
 }
