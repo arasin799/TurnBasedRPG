@@ -15,6 +15,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 import rpg.game.Game;
+import rpg.model.character.monster.Monster;
 import rpg.gui.GameTheme;
 
 /** Visual hub only. Battle starts separately when the player presses Battle. */
@@ -23,6 +24,7 @@ public class StageHubPanel extends JPanel {
     private final Game game;
     private int selectedStage = -1;
     private BufferedImage monsterSprite;
+    private Monster previewMonster;
 
     public StageHubPanel(Game game) {
         this.game = game;
@@ -34,6 +36,7 @@ public class StageHubPanel extends JPanel {
         if (selectedStage != stage) {
             selectedStage = stage;
             monsterSprite = loadMonster(game.getStageName(stage));
+            previewMonster = game.previewMonsterForStage(stage);
         }
         repaint();
     }
@@ -104,23 +107,22 @@ public class StageHubPanel extends JPanel {
             return;
         }
 
-        int leftX = bx + 27;
+        int leftX = bx + 25;
         String name = game.getStageName(selectedStage);
         boolean cleared = selectedStage < game.getStage();
         Color statusColor = cleared ? new Color(115, 215, 160) : GameTheme.GOLD;
 
-        text(g, "CURRENT CHALLENGE", leftX, by + 27, 12, GameTheme.MUTED);
+        // Reserve a dedicated footer for progress; never draw stats over it.
+        int marksY = by + bh - 24;
+        boolean compact = bh < 300;
+        text(g, "CURRENT CHALLENGE", leftX, by + 24, 11, GameTheme.MUTED);
         text(g, String.format("STAGE %02d", selectedStage + 1),
-                leftX, by + 76, 36, GameTheme.GOLD);
-        text(g, name.toUpperCase(), leftX, by + 113,
-                name.length() > 8 ? 20 : 26, GameTheme.TEXT);
+                leftX, by + (compact ? 61 : 67), 32, GameTheme.GOLD);
+        text(g, name.toUpperCase(), leftX, by + (compact ? 87 : 98),
+                name.length() > 8 ? 20 : 24, GameTheme.TEXT);
         text(g, cleared ? "CLEARED  /  REPLAY FOR REWARDS"
-                : "NEW STAGE  /  READY TO FIGHT", leftX, by + 139, 11, statusColor);
-        text(g, "ENTER SHOP OR INVENTORY TO PREPARE", leftX,
-                by + 164, 10, GameTheme.MUTED);
-        text(g, "ULTIMATE CHARGE " + game.getPlayer().getUltimateCharge()
-                + "/" + game.getPlayer().getMaxUltimateCharge(),
-                leftX, by + 184, 11, GameTheme.GOLD);
+                : "NEW STAGE  /  READY TO FIGHT", leftX,
+                by + (compact ? 107 : 120), 10, statusColor);
 
         int spriteSize = Math.min(131, Math.max(65, bh - 64));
         int spriteX = bx + bw - spriteSize - 47;
@@ -138,8 +140,49 @@ public class StageHubPanel extends JPanel {
                     15, GameTheme.MUTED);
         }
 
-        // Stage-progress pips: a filled square is cleared, an outline is locked.
-        int marksY = by + bh - 26;
+        // Use all available space to the LEFT of the monster sprite.
+        // The panel grows vertically when GameFrame is taller, but is also
+        // safe in the original 750x520 window.
+        if (previewMonster != null) {
+            int sx = bx + 24;
+            int sy = by + (compact ? 115 : 132);
+            int sw = Math.max(220, Math.min(470, spriteX - sx - 20));
+            int sh = Math.max(87, Math.min(148, marksY - sy - 17));
+
+            g.setColor(new Color(18, 29, 49));
+            g.fillRect(sx, sy, sw, sh);
+            g.setColor(GameTheme.PANEL_BORDER);
+            g.setStroke(new BasicStroke(1));
+            g.drawRect(sx, sy, sw - 1, sh - 1);
+            g.setColor(GameTheme.GOLD);
+            g.fillRect(sx, sy, 69, 2);
+
+            int tx = sx + 13;
+            int col2 = sx + Math.min(216, sw / 2 + 7);
+            boolean smallBox = sh < 125;
+            int headerY = sy + (smallBox ? 16 : 22);
+            int firstY = sy + (smallBox ? 32 : 45);
+            int rowHeight = smallBox ? 15 : 21;
+            int statSize = smallBox ? 11 : 12;
+            int detailSize = smallBox ? 10 : 11;
+
+            text(g, "MONSTER STATS", tx, headerY, 12, GameTheme.GOLD);
+            text(g, "HP   " + previewMonster.getMaxHp(), tx, firstY,
+                    statSize, GameTheme.TEXT);
+            text(g, "MP   " + previewMonster.getMaxMp(), col2, firstY,
+                    statSize, GameTheme.TEXT);
+            text(g, "ATK  " + previewMonster.getAttack(), tx,
+                    firstY + rowHeight, statSize, GameTheme.TEXT);
+            text(g, "DEF  " + previewMonster.getDefense(), col2,
+                    firstY + rowHeight, statSize, GameTheme.TEXT);
+            text(g, "EXP  +" + previewMonster.getExpReward(), tx,
+                    firstY + rowHeight * 2, detailSize, GameTheme.MUTED);
+            text(g, "ENEMY ULT: " + previewMonster.getUltimateSkillName()
+                    + "  [" + previewMonster.getUltimateChargeRequired() + "]",
+                    tx, firstY + rowHeight * 3, detailSize, GameTheme.TEXT);
+        }
+
+        // Stage-progress pips stay below the stats panel at every size.
         text(g, "PROGRESS", leftX, marksY + 2, 10, GameTheme.MUTED);
         int marksX = leftX + 100;
         for (int i = 0; i < game.getStageCount(); i++) {
