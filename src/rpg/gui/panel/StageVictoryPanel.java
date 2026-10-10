@@ -2,117 +2,173 @@ package rpg.gui.panel;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.util.List;
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import rpg.gui.GameFrame;
+import rpg.gui.GameTheme;
 
-/** Buttons and reward summary shown after winning a stage. */
+/** Simple pixel-RPG victory screen, using the existing EXP / Gold item sprites. */
 public class StageVictoryPanel extends JPanel {
 
-    public StageVictoryPanel(
-            GameFrame gameFrame,
-            int completedStage,
-            String monsterName,
-            int expReward,
-            int goldReward,
-            boolean hasNextStage,
-            List<String> droppedItems) {
+    private static final Color GREEN = new Color(122, 215, 157);
 
-        // Keep margins small enough for the existing 750x520 game window.
+    public StageVictoryPanel(GameFrame frame, int stageIndex,
+            String monsterName, int expReward, int goldReward,
+            boolean hasNextStage, List<String> droppedItems) {
+
+        setBackground(GameTheme.BACKGROUND);
         setLayout(new BorderLayout(0, 12));
-        setBorder(BorderFactory.createEmptyBorder(16, 28, 18, 28));
+        setBorder(BorderFactory.createEmptyBorder(20, 27, 19, 27));
 
-        JLabel titleLabel = new JLabel("STAGE CLEARED!", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 30));
+        JPanel heading = new JPanel();
+        heading.setOpaque(false);
+        heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
+        heading.add(label("VICTORY", 30, GameTheme.GOLD));
+        heading.add(Box.createVerticalStrut(7));
+        heading.add(label(String.format("STAGE %02d  -  %s", stageIndex + 1,
+                monsterName.toUpperCase()), 14, GameTheme.TEXT));
+        add(heading, BorderLayout.NORTH);
 
-        JLabel stageLabel = new JLabel(
-                "Stage " + (completedStage + 1) + " - " + monsterName,
-                SwingConstants.CENTER);
-        stageLabel.setFont(new Font("SansSerif", Font.PLAIN, 19));
+        JPanel rewards = new JPanel();
+        rewards.setBackground(GameTheme.PANEL);
+        rewards.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
+                BorderFactory.createEmptyBorder(17, 23, 18, 23)));
+        rewards.setLayout(new BoxLayout(rewards, BoxLayout.Y_AXIS));
+        rewards.add(label("REWARDS", 11, GameTheme.MUTED));
+        rewards.add(Box.createVerticalStrut(11));
 
-        JLabel rewardLabel = new JLabel(
-                "Gained " + expReward + " EXP and " + goldReward + " Gold!",
-                SwingConstants.CENTER);
-        rewardLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+        JPanel rewardRow = new JPanel(new GridLayout(1, 2, 16, 0));
+        rewardRow.setOpaque(false);
+        rewardRow.setPreferredSize(new Dimension(460, 47));
+        rewardRow.setMaximumSize(new Dimension(460, 47));
+        rewardRow.setAlignmentX(CENTER_ALIGNMENT);
+        rewardRow.add(reward("assets/item/Exp.png", "+" + expReward + " EXP",
+                GREEN));
+        rewardRow.add(reward("assets/item/coin_gold.png", "+" + goldReward + " GOLD",
+                GameTheme.GOLD));
+        rewards.add(rewardRow);
 
-        JLabel dropLabel = null;
+        // Only show item rewards actually obtained from BattleManager.
         if (droppedItems != null && !droppedItems.isEmpty()) {
-            String prefix = droppedItems.size() == 1
-                    ? "Item Obtained: " : "Items Obtained: ";
-            dropLabel = new JLabel(prefix + String.join(", ", droppedItems),
-                    SwingConstants.CENTER);
-            dropLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
-            dropLabel.setForeground(new Color(36, 120, 77));
-            dropLabel.setAlignmentX(CENTER_ALIGNMENT);
+            rewards.add(Box.createVerticalStrut(13));
+            rewards.add(label(droppedItems.size() == 1
+                    ? "ITEM OBTAINED" : "ITEMS OBTAINED", 11, GREEN));
+            rewards.add(Box.createVerticalStrut(5));
+            for (String itemName : droppedItems) {
+                rewards.add(label(itemName, 12, GameTheme.TEXT));
+            }
         }
 
-        JLabel hintLabel = new JLabel(
-                "Replay cleared stages to farm EXP and Gold.",
-                SwingConstants.CENTER);
-        hintLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        JPanel centered = new JPanel(new GridBagLayout());
+        centered.setOpaque(false);
+        centered.add(rewards);
+        add(centered, BorderLayout.CENTER);
 
-        // Use separate labels so Swing never clips the HTML description
-        // between BorderLayout.CENTER and the action buttons.
-        JPanel textPanel = new JPanel();
-        textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        JPanel actions = new JPanel(new GridLayout(1, 3, 10, 0));
+        actions.setOpaque(false);
+        JButton restart = button("RESTART CHALLENGE", false);
+        JButton next = button(hasNextStage ? "NEXT STAGE" : "VIEW ENDING", true);
+        JButton select = button("STAGE SELECT", false);
+        actions.add(restart);
+        actions.add(next);
+        actions.add(select);
+        add(actions, BorderLayout.SOUTH);
 
-        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
-        stageLabel.setAlignmentX(CENTER_ALIGNMENT);
-        rewardLabel.setAlignmentX(CENTER_ALIGNMENT);
-        hintLabel.setAlignmentX(CENTER_ALIGNMENT);
-
-        textPanel.add(titleLabel);
-        textPanel.add(Box.createVerticalStrut(22));
-        textPanel.add(stageLabel);
-        textPanel.add(Box.createVerticalStrut(18));
-        textPanel.add(rewardLabel);
-        if (dropLabel != null) {
-            textPanel.add(Box.createVerticalStrut(10));
-            textPanel.add(dropLabel);
-        }
-        textPanel.add(Box.createVerticalStrut(10));
-        textPanel.add(hintLabel);
-
-        // Center the entire text block, not each line independently.
-        JPanel textArea = new JPanel(new GridBagLayout());
-        textArea.setOpaque(false);
-        textArea.add(textPanel);
-        add(textArea, BorderLayout.CENTER);
-
-        JButton restartButton = new JButton("Restart Challenge");
-        JButton nextButton = new JButton(
-                hasNextStage ? "Next Stage" : "View Ending");
-        JButton selectButton = new JButton("Stage Select");
-
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 12, 0));
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(restartButton);
-        buttonPanel.add(nextButton);
-        buttonPanel.add(selectButton);
-        add(buttonPanel, BorderLayout.SOUTH);
-
-        restartButton.addActionListener(
-                e -> gameFrame.restartChallenge(completedStage));
-        nextButton.addActionListener(e -> {
+        restart.addActionListener(e -> frame.restartChallenge(stageIndex));
+        next.addActionListener(e -> {
             if (hasNextStage) {
-                gameFrame.prepareNextStage(completedStage + 1);
+                frame.prepareNextStage(stageIndex + 1); // Hub first, not battle.
             } else {
-                gameFrame.viewEnding();
+                frame.viewEnding();
             }
         });
-        selectButton.addActionListener(
-                e -> gameFrame.openStageSelection());
+        select.addActionListener(e -> frame.openStageSelection());
+    }
+
+    private JPanel reward(String path, String amount, Color color) {
+        JPanel panel = new JPanel(new BorderLayout(9, 0));
+        panel.setBackground(new Color(25, 35, 56));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 1),
+                BorderFactory.createEmptyBorder(7, 10, 7, 10)));
+        JLabel iconLabel = new JLabel();
+        iconLabel.setPreferredSize(new Dimension(26, 26));
+        BufferedImage icon = loadSprite(path);
+        if (icon != null) {
+            // Nearest-neighbor scaling keeps the same sharp pixels as assets/item.
+            BufferedImage scaled = new BufferedImage(26, 26, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = scaled.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g.drawImage(icon, 0, 0, 26, 26, null);
+            g.dispose();
+            iconLabel.setIcon(new ImageIcon(scaled));
+        } else {
+            iconLabel.setText("+"); // Don't crash if assets are not found.
+            iconLabel.setForeground(color);
+        }
+        panel.add(iconLabel, BorderLayout.WEST);
+        JLabel value = new JLabel(amount);
+        value.setForeground(color);
+        value.setFont(new Font("Monospaced", Font.BOLD, 14));
+        panel.add(value, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private BufferedImage loadSprite(String path) {
+        try (InputStream stream = StageVictoryPanel.class.getClassLoader()
+                .getResourceAsStream(path)) {
+            if (stream != null) {
+                return ImageIO.read(stream);
+            }
+        } catch (IOException ignored) {
+            // Try an unpackaged project directory next.
+        }
+        File file = new File(path);
+        if (!file.isFile()) {
+            file = new File("TurnBasedRPG", path);
+        }
+        try {
+            return file.isFile() ? ImageIO.read(file) : null;
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private JLabel label(String value, int size, Color color) {
+        JLabel result = new JLabel(value, SwingConstants.CENTER);
+        result.setFont(new Font("Monospaced", Font.BOLD, size));
+        result.setForeground(color);
+        result.setAlignmentX(CENTER_ALIGNMENT);
+        return result;
+    }
+
+    private JButton button(String value, boolean primary) {
+        JButton result = new JButton(value);
+        GameTheme.styleButton(result, primary);
+        result.setFont(new Font("Monospaced", Font.BOLD, 11));
+        result.setPreferredSize(new Dimension(180, 43));
+        return result;
     }
 }
