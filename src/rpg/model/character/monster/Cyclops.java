@@ -16,7 +16,7 @@ public class Cyclops extends Monster {
     private static final int ATTACK = 22;
     private static final int DEFENSE = 12;
 
-    private static final int EXP_REWARD = 100;
+    private static final int EXP_REWARD = 150;
     private static final int GOLD_REWARD = 100;
 
     public Cyclops() {
@@ -28,16 +28,16 @@ public class Cyclops extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                rollGold(80, 120),
+                rollGold(120, 170),
                 false
         );
         configureUltimate("Earthshaker", 5, 15, 20);
     }
 
-    // Soul Shard drop chance from the design spreadsheet.
+    // Higher Soul Shard chance for more rewarding stage farming.
     @Override
     public double getSoulShardDropChance() {
-        return 0.20;
+        return 0.35;
     }
 
     @Override
@@ -49,19 +49,19 @@ public class Cyclops extends Monster {
         int chance =
                 random.nextInt(100);
 
-        if (chance < 20) {
+        if (chance < 15) {
 
             return new SmallHealthPotion();
 
-        } else if (chance < 30) {
+        } else if (chance < 25) {
 
             return new SmallManaPotion();
 
-        } else if (chance < 45) {
+        } else if (chance < 55) {
 
             return new HealthPotion();
 
-        } else if (chance < 55) {
+        } else if (chance < 85) {
 
             return new ManaPotion();
         }

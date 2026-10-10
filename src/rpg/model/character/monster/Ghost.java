@@ -2,6 +2,8 @@ package rpg.model.character.monster;
 
 import java.util.Random;
 
+import rpg.model.item.HealthPotion;
+import rpg.model.item.ManaPotion;
 import rpg.model.item.Item;
 import rpg.model.item.SmallHealthPotion;
 import rpg.model.item.SmallManaPotion;
@@ -14,7 +16,7 @@ public class Ghost extends Monster {
     private static final int ATTACK = 18;
     private static final int DEFENSE = 7;
 
-    private static final int EXP_REWARD = 75;
+    private static final int EXP_REWARD = 110;
     private static final int GOLD_REWARD = 60;
 
     public Ghost() {
@@ -26,16 +28,16 @@ public class Ghost extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                rollGold(50, 80),
+                rollGold(75, 115),
                 false
         );
         configureUltimate("Phantom Surge", 4, 10, 16);
     }
 
-    // Soul Shard drop chance from the design spreadsheet.
+    // Higher Soul Shard chance for more rewarding stage farming.
     @Override
     public double getSoulShardDropChance() {
-        return 0.10;
+        return 0.25;
     }
 
     @Override
@@ -47,13 +49,21 @@ public class Ghost extends Monster {
         int chance =
                 random.nextInt(100);
 
-        if (chance < 10) {
+        if (chance < 20) {
 
             return new SmallHealthPotion();
 
         } else if (chance < 40) {
 
             return new SmallManaPotion();
+
+        } else if (chance < 60) {
+
+            return new HealthPotion();
+
+        } else if (chance < 75) {
+
+            return new ManaPotion();
         }
 
         return null;

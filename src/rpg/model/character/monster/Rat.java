@@ -14,7 +14,7 @@ public class Rat extends Monster {
     private static final int ATTACK = 10;
     private static final int DEFENSE = 2;
 
-    private static final int EXP_REWARD = 25;
+    private static final int EXP_REWARD = 40;
     private static final int GOLD_REWARD = 25;
 
     public Rat() {
@@ -26,16 +26,16 @@ public class Rat extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                rollGold(10, 30),
+                rollGold(20, 45),
                 false
         );
         configureUltimate("Feral Rush", 3, 0, 10);
     }
 
-    // Soul Shard drop chance from the design spreadsheet.
+    // Higher Soul Shard chance for more rewarding stage farming.
     @Override
     public double getSoulShardDropChance() {
-        return 0.03;
+        return 0.10;
     }
 
     @Override
@@ -47,11 +47,11 @@ public class Rat extends Monster {
         int chance =
                 random.nextInt(100);
 
-        if (chance < 30) {
+        if (chance < 45) {
 
             return new SmallHealthPotion();
 
-        } else if (chance < 40) {
+        } else if (chance < 65) {
 
             return new SmallManaPotion();
         }

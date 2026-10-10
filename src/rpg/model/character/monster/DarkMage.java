@@ -1,5 +1,7 @@
 package rpg.model.character.monster;
 
+import rpg.model.item.HealthPotion;
+import rpg.model.item.ManaPotion;
 import rpg.model.item.Item;
 import rpg.model.character.player.Player;
 
@@ -10,7 +12,7 @@ public class DarkMage extends Monster {
     private static final int ATTACK = 22;
     private static final int DEFENSE = 18;
 
-    private static final int EXP_REWARD = 200;
+    private static final int EXP_REWARD = 300;
     private static final int GOLD_REWARD = 200;
 
     public DarkMage() {
@@ -22,7 +24,7 @@ public class DarkMage extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                rollGold(170, 230),
+                rollGold(220, 300),
                 true
         );
         configureUltimate("Abyss Nova", 5, 25, 28);
@@ -36,7 +38,9 @@ public class DarkMage extends Monster {
 
     @Override
     public Item generateDrop() {
-        return null;
+        // Guaranteed large Potion in addition to the boss's guaranteed Soul Shard.
+        return java.util.concurrent.ThreadLocalRandom.current().nextBoolean()
+                ? new HealthPotion() : new ManaPotion();
     }
 
     private static final int SPECIAL_SKILL_CHANCE = 20;

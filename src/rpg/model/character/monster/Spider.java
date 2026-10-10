@@ -14,7 +14,7 @@ public class Spider extends Monster {
     private static final int ATTACK = 14;
     private static final int DEFENSE = 4;
 
-    private static final int EXP_REWARD = 50;
+    private static final int EXP_REWARD = 75;
     private static final int GOLD_REWARD = 40;
 
     public Spider() {
@@ -26,16 +26,16 @@ public class Spider extends Monster {
                 ATTACK,
                 DEFENSE,
                 EXP_REWARD,
-                rollGold(30, 50),
+                rollGold(45, 75),
                 false
         );
         configureUltimate("Venom Burst", 4, 5, 12);
     }
 
-    // Soul Shard drop chance from the design spreadsheet.
+    // Higher Soul Shard chance for more rewarding stage farming.
     @Override
     public double getSoulShardDropChance() {
-        return 0.05;
+        return 0.15;
     }
 
     @Override
@@ -47,11 +47,11 @@ public class Spider extends Monster {
         int chance =
                 random.nextInt(100);
 
-        if (chance < 25) {
+        if (chance < 35) {
 
             return new SmallHealthPotion();
 
-        } else if (chance < 40) {
+        } else if (chance < 70) {
 
             return new SmallManaPotion();
         }
