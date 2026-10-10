@@ -106,25 +106,34 @@ public class StageVictoryPanel extends JPanel {
         centeredContent.add(content);
         add(centeredContent, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new GridLayout(1, 3, 10, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
+
         JButton restart = button("RESTART CHALLENGE", false);
-        JButton next = button(hasNextStage ? "NEXT STAGE" : "VIEW ENDING", true);
-        JButton select = button("STAGE SELECT", false);
+        JButton next = button(
+                hasNextStage ? "NEXT STAGE" : "VIEW ENDING",
+                true
+        );
+
         actions.add(restart);
         actions.add(next);
-        actions.add(select);
+
         add(actions, BorderLayout.SOUTH);
 
-        restart.addActionListener(e -> frame.restartChallenge(stageIndex));
+        // Restart: ต่อสู้ด่านเดิมอีกครั้ง
+        restart.addActionListener(
+                e -> frame.restartChallenge(stageIndex)
+        );
+
+        // Next Stage: กลับ Hub ก่อน ไม่เริ่ม Battle ทันที
         next.addActionListener(e -> {
             if (hasNextStage) {
-                frame.prepareNextStage(stageIndex + 1); // Hub first, not battle.
+                frame.prepareNextStage(stageIndex + 1);
             } else {
                 frame.viewEnding();
             }
         });
-        select.addActionListener(e -> frame.openStageSelection());
+        
     }
 
     private JPanel reward(String path, String amount, Color color) {
