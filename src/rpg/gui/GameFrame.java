@@ -60,6 +60,11 @@ public class GameFrame extends JFrame {
     private JPanel centerPanel;
     private StageHubPanel hubPanel;
     private JPanel bottomNavigationPanel;
+    private JPanel subpageNavigationPanel;
+
+    private JButton backToHubButton;
+    private JButton subpageSaveButton;
+    private JButton subpageMainMenuButton;
 
     // Remove old battle panels before showing a new challenge.
     private BattlePanel activeBattlePanel;
@@ -142,6 +147,10 @@ public class GameFrame extends JFrame {
 
         mainMenuButton =
                 new JButton("Main Menu");
+
+        backToHubButton = new JButton("Back to Hub");
+        subpageSaveButton = new JButton("Save Game");
+        subpageMainMenuButton = new JButton("Main Menu");
     }
 
     // -------------------------
@@ -212,6 +221,22 @@ public class GameFrame extends JFrame {
         mainMenuButton.setPreferredSize(new Dimension(0, 31));
         southPanel.add(mainMenuButton, BorderLayout.SOUTH);
         bottomNavigationPanel = southPanel;
+
+        // Compact navigation used ONLY in Inventory and Shop.
+        JPanel subpageActions = new JPanel(new GridLayout(1, 3, 12, 0));
+        subpageActions.setOpaque(false);
+        styleNav(backToHubButton, true);
+        styleNav(subpageSaveButton, false);
+        styleNav(subpageMainMenuButton, false);
+        subpageActions.add(backToHubButton);
+        subpageActions.add(subpageSaveButton);
+        subpageActions.add(subpageMainMenuButton);
+
+        subpageNavigationPanel = new JPanel(new BorderLayout());
+        subpageNavigationPanel.setBackground(GameTheme.BACKGROUND);
+        subpageNavigationPanel.setBorder(
+                BorderFactory.createEmptyBorder(8, 20, 14, 20));
+        subpageNavigationPanel.add(subpageActions, BorderLayout.CENTER);
 
         add(statusPanel, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
@@ -287,6 +312,9 @@ public class GameFrame extends JFrame {
         mainMenuButton.addActionListener(
                 e -> returnToMainMenu()
         );
+        backToHubButton.addActionListener(e -> showHub());
+        subpageSaveButton.addActionListener(e -> saveGame());
+        subpageMainMenuButton.addActionListener(e -> returnToMainMenu());
     }
 
     // -------------------------
@@ -367,13 +395,31 @@ public class GameFrame extends JFrame {
         }
         hubPanel.setSelectedStage(selectedStage);
 
-        battleButton.setEnabled(player.isAlive());
-        selectStageButton.setEnabled(player.isAlive());
+        // Refreshing equipment or Gold must NOT re-enable Hub buttons
+        // while the player is still viewing Inventory/Shop.
+        boolean onHub = bottomNavigationPanel.getParent() == getContentPane();
+        battleButton.setEnabled(onHub && player.isAlive());
+        selectStageButton.setEnabled(onHub && player.isAlive());
     }
 
     // -------------------------
     // Battle
     // -------------------------
+
+    /** Swap navigation without reserving blank Hub-footer space on other pages. */
+    private void showNavigation(JPanel target) {
+        if (bottomNavigationPanel.getParent() == getContentPane()) {
+            getContentPane().remove(bottomNavigationPanel);
+        }
+        if (subpageNavigationPanel.getParent() == getContentPane()) {
+            getContentPane().remove(subpageNavigationPanel);
+        }
+        if (target != null) {
+            getContentPane().add(target, BorderLayout.SOUTH);
+        }
+        getContentPane().revalidate();
+        getContentPane().repaint();
+    }
 
     private void setNavigationEnabled(
             boolean enabled) {
@@ -399,7 +445,7 @@ public class GameFrame extends JFrame {
         activeStageSelectPanel = new StageSelectPanel(game, this, selectedStage);
         centerPanel.add(activeStageSelectPanel, "STAGE_SELECT");
         centerLayout.show(centerPanel, "STAGE_SELECT");
-        bottomNavigationPanel.setVisible(false);
+        showNavigation(null);
         setNavigationEnabled(false);
         centerPanel.revalidate();
         centerPanel.repaint();
@@ -422,7 +468,7 @@ public class GameFrame extends JFrame {
         try {
             BattleManager battle = game.startBattle(stageIndex);
             // Hide inactive Hub buttons while the battle screen is displayed.
-            bottomNavigationPanel.setVisible(false);
+            showNavigation(null);
             selectedStage = stageIndex;
 
             if (activeBattlePanel != null) {
@@ -496,7 +542,7 @@ public class GameFrame extends JFrame {
         centerPanel.repaint();
         setNavigationEnabled(false);
         // Victory has its own 3 buttons; hide inactive Hub buttons.
-        bottomNavigationPanel.setVisible(false);
+        showNavigation(null);
         revalidate();
         repaint();
     }
@@ -539,7 +585,7 @@ public class GameFrame extends JFrame {
         );
 
         setNavigationEnabled(false);
-        bottomNavigationPanel.setVisible(false);
+        showNavigation(null);
         revalidate();
         repaint();
     }
@@ -566,12 +612,13 @@ public class GameFrame extends JFrame {
                 "INVENTORY"
         );
 
+        showNavigation(subpageNavigationPanel);
         setNavigationEnabled(false);
     }
 
     public void showHub() {
 
-        bottomNavigationPanel.setVisible(true);
+        showNavigation(bottomNavigationPanel);
         refreshGameInfo();
 
         centerLayout.show(
@@ -606,6 +653,7 @@ public class GameFrame extends JFrame {
                 "SHOP"
         );
 
+        showNavigation(subpageNavigationPanel);
         setNavigationEnabled(false);
     }
 

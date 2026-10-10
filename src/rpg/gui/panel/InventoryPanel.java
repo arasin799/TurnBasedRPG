@@ -1,10 +1,25 @@
 package rpg.gui.panel;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -12,626 +27,434 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
 
 import rpg.game.Game;
 import rpg.gui.GameFrame;
+import rpg.gui.GameTheme;
 import rpg.model.character.player.Player;
 import rpg.model.item.Armor;
+import rpg.model.item.Bomb;
+import rpg.model.item.HealthPotion;
 import rpg.model.item.Item;
+import rpg.model.item.ManaPotion;
 import rpg.model.item.Potion;
+import rpg.model.item.SmallHealthPotion;
+import rpg.model.item.SmallManaPotion;
+import rpg.model.item.SoulShard;
 import rpg.model.item.Usable;
 import rpg.model.item.Weapon;
 
+/** Pixel-themed Inventory screen. The existing Inventory/Player classes own item logic. */
 public class InventoryPanel extends JPanel {
 
-    private Game game;
-    private GameFrame gameFrame;
+    private static final Color INNER = new Color(20, 29, 49);
+    private static final Color HIGHLIGHT = new Color(46, 59, 88);
+    private static final Color SUCCESS = new Color(116, 220, 157);
+    private static final Font MONO_12 = new Font("Monospaced", Font.BOLD, 12);
 
-    private DefaultListModel<Item> itemListModel;
+    private final Game game;
+    private final GameFrame gameFrame;
+    private final Map<String, ImageIcon> icons = new HashMap<>();
+
+    private final DefaultListModel<Item> itemListModel = new DefaultListModel<>();
     private JList<Item> itemList;
-
+    private JLabel countLabel;
+    private JLabel selectedItemName;
+    private JLabel selectedItemCategory;
+    private JLabel largeItemIcon;
     private JTextArea itemInfoArea;
-
     private JLabel weaponLabel;
     private JLabel armorLabel;
-
+    private JLabel ultimateLabel;
     private JButton useButton;
     private JButton equipButton;
-    private JButton backButton;
 
-    public InventoryPanel(
-            Game game,
-            GameFrame gameFrame) {
-
+    public InventoryPanel(Game game, GameFrame gameFrame) {
         this.game = game;
         this.gameFrame = gameFrame;
-
-        createComponents();
         createLayout();
         registerEvents();
-
         refreshInventory();
     }
 
-    // -------------------------
-    // Components
-    // -------------------------
+    private JLabel label(String text, int size, Color color) {
+        JLabel result = new JLabel(text);
+        result.setFont(new Font("Monospaced", Font.BOLD, size));
+        result.setForeground(color);
+        return result;
+    }
 
-    private void createComponents() {
+    private JPanel panel() {
+        JPanel result = new JPanel(new BorderLayout(0, 7));
+        result.setBackground(GameTheme.PANEL);
+        result.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
+                BorderFactory.createEmptyBorder(10, 11, 10, 11)));
+        return result;
+    }
 
-        itemListModel =
-                new DefaultListModel<>();
+    private void createLayout() {
+        setLayout(new BorderLayout(0, 10));
+        setBackground(GameTheme.BACKGROUND);
+        setBorder(BorderFactory.createEmptyBorder(11, 17, 12, 17));
 
-        itemList =
-                new JList<>(itemListModel);
+        JPanel title = new JPanel(new BorderLayout());
+        title.setOpaque(false);
+        title.add(label("INVENTORY  /  EQUIPMENT", 19, GameTheme.GOLD), BorderLayout.WEST);
+        countLabel = label("0 ITEMS", 11, GameTheme.MUTED);
+        title.add(countLabel, BorderLayout.EAST);
+        add(title, BorderLayout.NORTH);
 
-        itemList.setSelectionMode(
-                ListSelectionModel.SINGLE_SELECTION
-        );
+        JPanel body = new JPanel(new BorderLayout(12, 0));
+        body.setOpaque(false);
 
-        itemInfoArea =
-                new JTextArea();
+        // Left: actual Item objects, with pixel icons from assets/item.
+        JPanel bag = panel();
+        bag.setPreferredSize(new Dimension(252, 200));
+        bag.add(label("BAG CONTENTS", 12, GameTheme.GOLD), BorderLayout.NORTH);
+        itemList = new JList<>(itemListModel);
+        itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        itemList.setCellRenderer(new ItemRowRenderer());
+        itemList.setFixedCellHeight(46);
+        itemList.setBackground(INNER);
+        itemList.setForeground(GameTheme.TEXT);
+        itemList.setSelectionBackground(HIGHLIGHT);
+        itemList.setSelectionForeground(GameTheme.TEXT);
+        itemList.setFocusable(true);
+        JScrollPane itemScroll = new JScrollPane(itemList);
+        itemScroll.setBorder(BorderFactory.createLineBorder(GameTheme.PANEL_BORDER));
+        itemScroll.getViewport().setBackground(INNER);
+        bag.add(itemScroll, BorderLayout.CENTER);
+        body.add(bag, BorderLayout.WEST);
 
+        // Right: selected item, stats, equipped items, ultimate charge.
+        JPanel details = panel();
+        JPanel detailHeading = new JPanel(new BorderLayout(11, 0));
+        detailHeading.setOpaque(false);
+        largeItemIcon = new JLabel("?", SwingConstants.CENTER);
+        largeItemIcon.setForeground(GameTheme.GOLD);
+        largeItemIcon.setFont(new Font("Monospaced", Font.BOLD, 24));
+        largeItemIcon.setPreferredSize(new Dimension(56, 54));
+        largeItemIcon.setOpaque(true);
+        largeItemIcon.setBackground(INNER);
+        largeItemIcon.setBorder(BorderFactory.createLineBorder(GameTheme.PANEL_BORDER));
+        detailHeading.add(largeItemIcon, BorderLayout.WEST);
+
+        JPanel itemTitle = new JPanel(new GridLayout(2, 1, 0, 3));
+        itemTitle.setOpaque(false);
+        selectedItemName = label("SELECT AN ITEM", 14, GameTheme.TEXT);
+        selectedItemCategory = label("Inspect items in your bag", 10, GameTheme.MUTED);
+        itemTitle.add(selectedItemName);
+        itemTitle.add(selectedItemCategory);
+        detailHeading.add(itemTitle, BorderLayout.CENTER);
+        details.add(detailHeading, BorderLayout.NORTH);
+
+        itemInfoArea = new JTextArea("Select an item to see its details.");
         itemInfoArea.setEditable(false);
         itemInfoArea.setLineWrap(true);
         itemInfoArea.setWrapStyleWord(true);
+        itemInfoArea.setBackground(INNER);
+        itemInfoArea.setForeground(GameTheme.TEXT);
+        itemInfoArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        itemInfoArea.setMargin(new java.awt.Insets(7, 10, 7, 10));
+        JScrollPane detailsScroll = new JScrollPane(itemInfoArea);
+        detailsScroll.setBorder(BorderFactory.createLineBorder(GameTheme.PANEL_BORDER));
+        detailsScroll.getViewport().setBackground(INNER);
+        detailsScroll.getVerticalScrollBar().setUnitIncrement(14);
+        details.add(detailsScroll, BorderLayout.CENTER);
 
-        weaponLabel = new JLabel();
-        armorLabel = new JLabel();
+        JPanel equipment = new JPanel(new GridLayout(3, 1, 0, 2));
+        equipment.setBackground(GameTheme.PANEL);
+        equipment.setBorder(BorderFactory.createEmptyBorder(5, 2, 0, 0));
+        weaponLabel = label("WEAPON: NONE", 10, GameTheme.MUTED);
+        armorLabel = label("ARMOR: NONE", 10, GameTheme.MUTED);
+        ultimateLabel = label("ULTIMATE CHARGE: 0/5", 10, GameTheme.GOLD);
+        equipment.add(weaponLabel);
+        equipment.add(armorLabel);
+        equipment.add(ultimateLabel);
+        details.add(equipment, BorderLayout.SOUTH);
+        body.add(details, BorderLayout.CENTER);
+        add(body, BorderLayout.CENTER);
 
-        useButton =
-                new JButton("Use");
-
-        equipButton =
-                new JButton("Equip");
-
-        backButton =
-                new JButton("Back");
-
-        useButton.setEnabled(false);
-        equipButton.setEnabled(false);
+        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        actions.setOpaque(false);
+        actions.setPreferredSize(new Dimension(650, 41));
+        useButton = new JButton("USE ITEM");
+        equipButton = new JButton("EQUIP");
+        styleButton(useButton, true);
+        styleButton(equipButton, false);
+        actions.add(useButton);
+        actions.add(equipButton);
+        add(actions, BorderLayout.SOUTH);
     }
 
-    // -------------------------
-    // Layout
-    // -------------------------
-
-    private void createLayout() {
-
-        setLayout(
-                new BorderLayout(
-                        15,
-                        15
-                )
-        );
-
-        setBorder(
-                BorderFactory.createEmptyBorder(
-                        15,
-                        20,
-                        15,
-                        20
-                )
-        );
-
-        // -------------------------
-        // Item List
-        // -------------------------
-
-        JScrollPane itemScrollPane =
-                new JScrollPane(itemList);
-
-        itemScrollPane.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Inventory"
-                )
-        );
-
-        // -------------------------
-        // Item Information
-        // -------------------------
-
-        JPanel rightPanel =
-                new JPanel(
-                        new BorderLayout(
-                                10,
-                                10
-                        )
-                );
-
-        JScrollPane infoScrollPane =
-                new JScrollPane(
-                        itemInfoArea
-                );
-
-        infoScrollPane.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Item Information"
-                )
-        );
-
-        // -------------------------
-        // Equipment
-        // -------------------------
-
-        JPanel equipmentPanel =
-                new JPanel(
-                        new GridLayout(
-                                2,
-                                1,
-                                5,
-                                5
-                        )
-                );
-
-        equipmentPanel.setBorder(
-                BorderFactory.createTitledBorder(
-                        "Equipment"
-                )
-        );
-
-        equipmentPanel.add(weaponLabel);
-        equipmentPanel.add(armorLabel);
-
-        rightPanel.add(
-                infoScrollPane,
-                BorderLayout.CENTER
-        );
-
-        rightPanel.add(
-                equipmentPanel,
-                BorderLayout.SOUTH
-        );
-
-        // -------------------------
-        // Buttons
-        // -------------------------
-
-        JPanel buttonPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                3,
-                                10,
-                                0
-                        )
-                );
-
-        buttonPanel.add(useButton);
-        buttonPanel.add(equipButton);
-        buttonPanel.add(backButton);
-
-        add(
-                itemScrollPane,
-                BorderLayout.WEST
-        );
-
-        add(
-                rightPanel,
-                BorderLayout.CENTER
-        );
-
-        add(
-                buttonPanel,
-                BorderLayout.SOUTH
-        );
+    private void styleButton(JButton button, boolean primary) {
+        GameTheme.styleButton(button, primary);
+        button.setFont(MONO_12);
+        button.setPreferredSize(new Dimension(130, 40));
+        button.setMaximumSize(new Dimension(300, 40));
     }
-
-    // -------------------------
-    // Events
-    // -------------------------
 
     private void registerEvents() {
-
-        itemList.addListSelectionListener(
-                e -> {
-
-                    if (!e.getValueIsAdjusting()) {
-                        updateSelectedItem();
-                    }
-                }
-        );
-
-        useButton.addActionListener(
-                e -> useSelectedItem()
-        );
-
-        equipButton.addActionListener(
-                e -> equipSelectedItem()
-        );
-
-        backButton.addActionListener(
-                e -> gameFrame.showHub()
-        );
+        itemList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateSelectedItem();
+            }
+        });
+        useButton.addActionListener(e -> useSelectedItem());
+        equipButton.addActionListener(e -> equipSelectedItem());
     }
-
-    // -------------------------
-    // Refresh
-    // -------------------------
 
     public void refreshInventory() {
-
+        Item previousSelection = itemList.getSelectedValue();
         itemListModel.clear();
-
-        Player player =
-                game.getPlayer();
-
-        for (Item item :
-                player.getInventory()
-                        .getItems()) {
-
+        for (Item item : game.getPlayer().getInventory().getItems()) {
             itemListModel.addElement(item);
         }
-
+        countLabel.setText(itemListModel.getSize() + " ITEMS");
         updateEquipmentInfo();
-
-        itemInfoArea.setText(
-                "Select an item to view its information."
-        );
-
-        useButton.setEnabled(false);
-        equipButton.setEnabled(false);
+        // Keep focus after equipping, but do not retain an item that was consumed.
+        if (previousSelection != null) {
+            for (int i = 0; i < itemListModel.size(); i++) {
+                if (itemListModel.get(i) == previousSelection) {
+                    itemList.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+        updateSelectedItem();
     }
-
-    // -------------------------
-    // Item Selection
-    // -------------------------
 
     private void updateSelectedItem() {
-
-        Item item =
-                itemList.getSelectedValue();
-
+        Item item = itemList.getSelectedValue();
         if (item == null) {
-
-            itemInfoArea.setText(
-                    "Select an item to view its information."
-            );
-
+            selectedItemName.setText("SELECT AN ITEM");
+            selectedItemCategory.setText("Inspect items in your bag");
+            largeItemIcon.setIcon(null);
+            largeItemIcon.setText("?");
+            itemInfoArea.setText("Choose an item from the list on the left.\n\n"
+                    + "You can use Potions and Soul Shards here, or equip weapons and armor.");
             useButton.setEnabled(false);
             equipButton.setEnabled(false);
-
+            equipButton.setText("EQUIP");
             return;
         }
 
-        StringBuilder info =
-                new StringBuilder();
+        Player player = game.getPlayer();
+        selectedItemName.setText(item.getName().toUpperCase());
+        selectedItemCategory.setText(itemCategory(item));
+        ImageIcon picture = iconFor(item, 52);
+        largeItemIcon.setIcon(picture);
+        largeItemIcon.setText(picture == null ? "?" : "");
 
-        info.append(
-                "Name: "
-                        + item.getName()
-        );
-
-        info.append(
-                "\n\nDescription:\n"
-                        + item.getDescription()
-        );
-
-        info.append(
-                "\n\nBuy Price: "
-                        + item.getBuyPrice()
-        );
-
-        info.append(
-                "\nSell Price: "
-                        + item.getSellPrice()
-        );
-
+        StringBuilder info = new StringBuilder();
+        info.append(item.getDescription());
         if (item instanceof Weapon) {
-
-            Weapon weapon =
-                    (Weapon) item;
-
-            info.append(
-                    "\n\nAttack Bonus: +"
-                            + weapon.getAttackBonus()
-            );
-
+            info.append("\n\nATTACK BONUS: +")
+                    .append(((Weapon) item).getAttackBonus());
         } else if (item instanceof Armor) {
-
-            Armor armor =
-                    (Armor) item;
-
-            info.append(
-                    "\n\nDefense Bonus: +"
-                            + armor.getDefenseBonus()
-            );
-
+            info.append("\n\nDEFENSE BONUS: +")
+                    .append(((Armor) item).getDefenseBonus());
         } else if (item instanceof Potion) {
-
-            Potion potion =
-                    (Potion) item;
-
-            info.append(
-                    "\n\nRestore Amount: "
-                            + potion.getRestoreAmount()
-            );
+            info.append("\n\nRESTORE AMOUNT: ")
+                    .append(((Potion) item).getRestoreAmount());
+        } else if (item instanceof SoulShard) {
+            info.append("\n\nULTIMATE CHARGE: ")
+                    .append(player.getUltimateCharge())
+                    .append("/")
+                    .append(player.getMaxUltimateCharge());
+        } else if (item instanceof Bomb) {
+            info.append("\n\nUSABLE IN BATTLE ONLY");
         }
+        if (!(item instanceof SoulShard)) {
+            info.append("\n\nBUY: ").append(item.getBuyPrice())
+                    .append(" GOLD    SELL: ").append(item.getSellPrice()).append(" GOLD");
+        } else {
+            info.append("\n\nMONSTER DROP - CANNOT BE BOUGHT OR SOLD");
+        }
+        itemInfoArea.setText(info.toString());
+        itemInfoArea.setCaretPosition(0);
 
-        itemInfoArea.setText(
-                info.toString()
-        );
-
-        useButton.setEnabled(
-                item instanceof Usable
-        );
-
-        Player player =
-                game.getPlayer();
+        boolean useAvailable = item instanceof Usable;
+        if (item instanceof SoulShard) {
+            useAvailable = player.getUltimateCharge() < player.getMaxUltimateCharge();
+        }
+        useButton.setEnabled(useAvailable);
 
         if (item instanceof Weapon) {
-
             equipButton.setEnabled(true);
-
-            if (item == player.getEquippedWeapon()) {
-
-                equipButton.setText(
-                        "Unequip"
-                );
-
-            } else {
-
-                equipButton.setText(
-                        "Equip"
-                );
-            }
-
+            equipButton.setText(item == player.getEquippedWeapon() ? "UNEQUIP" : "EQUIP");
         } else if (item instanceof Armor) {
-
             equipButton.setEnabled(true);
-
-            if (item == player.getEquippedArmor()) {
-
-                equipButton.setText(
-                        "Unequip"
-                );
-
-            } else {
-
-                equipButton.setText(
-                        "Equip"
-                );
-            }
-
+            equipButton.setText(item == player.getEquippedArmor() ? "UNEQUIP" : "EQUIP");
         } else {
-
             equipButton.setEnabled(false);
-
-            equipButton.setText(
-                    "Equip"
-            );
+            equipButton.setText("EQUIP");
         }
     }
 
-    // -------------------------
-    // Use Item
-    // -------------------------
+    private String itemCategory(Item item) {
+        if (item instanceof SoulShard) return "RARE DROP  /  ULTIMATE CHARGE";
+        if (item instanceof Weapon) return "WEAPON  /  EQUIPMENT";
+        if (item instanceof Armor) return "ARMOR  /  EQUIPMENT";
+        if (item instanceof Potion) return "CONSUMABLE  /  POTION";
+        if (item instanceof Bomb) return "COMBAT ITEM  /  BOMB";
+        return "ITEM";
+    }
 
     private void useSelectedItem() {
-
-        Item item =
-                itemList.getSelectedValue();
-
-        if (item == null) {
+        Item item = itemList.getSelectedValue();
+        if (item == null) return;
+        Player player = game.getPlayer();
+        if (!player.getInventory().useItem(item, player)) {
+            JOptionPane.showMessageDialog(this,
+                    "This item cannot be used right now.", "Use Item",
+                    JOptionPane.INFORMATION_MESSAGE);
+            updateSelectedItem();
             return;
         }
-
-        Player player =
-                game.getPlayer();
-
-        boolean used =
-                player.getInventory()
-                        .useItem(
-                                item,
-                                player
-                        );
-
-        if (!used) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "This item cannot be used right now.",
-                    "Use Item",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            return;
-        }
-
-        JOptionPane.showMessageDialog(
-                this,
-                item.getName()
-                        + " used successfully.",
-                "Use Item",
-                JOptionPane.INFORMATION_MESSAGE
-        );
-
+        JOptionPane.showMessageDialog(this, item.getName() + " used successfully.",
+                "Use Item", JOptionPane.INFORMATION_MESSAGE);
         refreshInventory();
-
         gameFrame.refreshGameInfo();
     }
-
-    // -------------------------
-    // Equip Item
-    // -------------------------
 
     private void equipSelectedItem() {
-
-        Item item =
-                itemList.getSelectedValue();
-
-        if (item == null) {
+        Item item = itemList.getSelectedValue();
+        if (item == null) return;
+        Player player = game.getPlayer();
+        String message = null;
+        if (item instanceof Weapon) {
+            Weapon weapon = (Weapon) item;
+            if (weapon == player.getEquippedWeapon()) {
+                player.unequipWeapon();
+                message = weapon.getName() + " unequipped.";
+            } else if (player.equipWeapon(weapon)) {
+                message = weapon.getName() + " equipped.";
+            }
+        } else if (item instanceof Armor) {
+            Armor armor = (Armor) item;
+            if (armor == player.getEquippedArmor()) {
+                player.unequipArmor();
+                message = armor.getName() + " unequipped.";
+            } else if (player.equipArmor(armor)) {
+                message = armor.getName() + " equipped.";
+            }
+        }
+        if (message == null) {
+            JOptionPane.showMessageDialog(this,
+                    player.getClass().getSimpleName() + " cannot equip " + item.getName() + ".",
+                    "Cannot Equip", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        Player player =
-                game.getPlayer();
-
-        // -------------------------
-        // Weapon
-        // -------------------------
-
-        if (item instanceof Weapon) {
-
-            Weapon weapon =
-                    (Weapon) item;
-
-            if (weapon
-                    == player.getEquippedWeapon()) {
-
-                player.unequipWeapon();
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        weapon.getName()
-                                + " unequipped.",
-                        "Equipment",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-            } else {
-
-                boolean equipped =
-                    player.equipWeapon(
-                            weapon
-                    );
-
-            if (!equipped) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        player.getClass()
-                                .getSimpleName()
-                                + " cannot equip "
-                                + weapon.getName()
-                                + ".",
-                        "Cannot Equip",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    weapon.getName()
-                            + " equipped.",
-                    "Equipment",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            }
-
-        // -------------------------
-        // Armor
-        // -------------------------
-
-        } else if (item instanceof Armor) {
-
-            Armor armor =
-                    (Armor) item;
-
-            if (armor
-                    == player.getEquippedArmor()) {
-
-                player.unequipArmor();
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        armor.getName()
-                                + " unequipped.",
-                        "Equipment",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-            } else {
-
-                boolean equipped =
-                    player.equipArmor(
-                            armor
-                    );
-
-            if (!equipped) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        player.getClass()
-                                .getSimpleName()
-                                + " cannot equip "
-                                + armor.getName()
-                                + ".",
-                        "Cannot Equip",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    armor.getName()
-                            + " equipped.",
-                    "Equipment",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            }
-        }
-
+        JOptionPane.showMessageDialog(this, message, "Equipment", JOptionPane.INFORMATION_MESSAGE);
         updateEquipmentInfo();
-
         updateSelectedItem();
-
+        itemList.repaint();
         gameFrame.refreshGameInfo();
     }
 
-    // -------------------------
-    // Equipment Information
-    // -------------------------
-
     private void updateEquipmentInfo() {
+        Player player = game.getPlayer();
+        Weapon weapon = player.getEquippedWeapon();
+        Armor armor = player.getEquippedArmor();
+        weaponLabel.setText(weapon == null ? "WEAPON: NONE"
+                : "WEAPON: " + weapon.getName() + "  (+" + weapon.getAttackBonus() + " ATK)");
+        armorLabel.setText(armor == null ? "ARMOR: NONE"
+                : "ARMOR: " + armor.getName() + "  (+" + armor.getDefenseBonus() + " DEF)");
+        ultimateLabel.setText("ULTIMATE CHARGE: " + player.getUltimateCharge()
+                + "/" + player.getMaxUltimateCharge());
+    }
 
-        Player player =
-                game.getPlayer();
+    /** Load existing 16x16 icons; preserve sharp pixel edges when scaling. */
+    private ImageIcon iconFor(Item item, int targetSize) {
+        String filename = spriteFilename(item);
+        String key = filename + "@" + targetSize;
+        if (icons.containsKey(key)) return icons.get(key);
+        BufferedImage original = readItemSprite(filename);
+        if (original == null) {
+            icons.put(key, null);
+            return null;
+        }
+        BufferedImage scaled = new BufferedImage(targetSize, targetSize,
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = scaled.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        graphics.drawImage(original, 0, 0, targetSize, targetSize, null);
+        graphics.dispose();
+        ImageIcon icon = new ImageIcon(scaled);
+        icons.put(key, icon);
+        return icon;
+    }
 
-        if (player.getEquippedWeapon()
-                == null) {
+    private String spriteFilename(Item item) {
+        if (item instanceof SmallHealthPotion) return "health_potion_small.png";
+        if (item instanceof HealthPotion) return "health_potion_big.png";
+        if (item instanceof SmallManaPotion) return "mana_potion_small.png";
+        if (item instanceof ManaPotion) return "mana_potion_big.png";
+        if (item instanceof SoulShard) return "soul_shard.png";
+        if (item instanceof Bomb) return "bomb.png";
+        // Shop's weapons and armor are regular Item objects with canonical names.
+        return item.getName().toLowerCase(java.util.Locale.ROOT)
+                .replace(' ', '_').replaceAll("[^a-z0-9_.]", "") + ".png";
+    }
 
-            weaponLabel.setText(
-                    "Weapon: None"
-            );
+    private BufferedImage readItemSprite(String filename) {
+        String path = "assets/item/" + filename;
+        try (InputStream stream = InventoryPanel.class.getClassLoader()
+                .getResourceAsStream(path)) {
+            if (stream != null) return ImageIO.read(stream);
+        } catch (IOException ignored) {
+            // File-system fallback for VS Code running from the project directory.
+        }
+        File file = new File(path);
+        if (!file.isFile()) file = new File("TurnBasedRPG", path);
+        if (!file.isFile()) return null;
+        try {
+            return ImageIO.read(file);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
 
-        } else {
+    /** Render items as pixel cards without changing the JList's underlying Item objects. */
+    private final class ItemRowRenderer extends JPanel implements ListCellRenderer<Item> {
+        private final JLabel itemIcon = new JLabel("?", SwingConstants.CENTER);
+        private final JLabel itemName = label("", 12, GameTheme.TEXT);
+        private final JLabel itemMeta = label("", 10, GameTheme.MUTED);
 
-            weaponLabel.setText(
-                    "Weapon: "
-                            + player.getEquippedWeapon()
-                                    .getName()
-                            + " (+"
-                            + player.getEquippedWeapon()
-                                    .getAttackBonus()
-                            + " ATK)"
-            );
+        ItemRowRenderer() {
+            super(new BorderLayout(8, 0));
+            setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            itemIcon.setPreferredSize(new Dimension(35, 35));
+            itemIcon.setForeground(GameTheme.GOLD);
+            JPanel text = new JPanel(new GridLayout(2, 1, 0, 1));
+            text.setOpaque(false);
+            text.add(itemName);
+            text.add(itemMeta);
+            add(itemIcon, BorderLayout.WEST);
+            add(text, BorderLayout.CENTER);
         }
 
-        if (player.getEquippedArmor()
-                == null) {
-
-            armorLabel.setText(
-                    "Armor: None"
-            );
-
-        } else {
-
-            armorLabel.setText(
-                    "Armor: "
-                            + player.getEquippedArmor()
-                                    .getName()
-                            + " (+"
-                            + player.getEquippedArmor()
-                                    .getDefenseBonus()
-                            + " DEF)"
-            );
+        @Override
+        public Component getListCellRendererComponent(JList<? extends Item> list,
+                Item value, int index, boolean isSelected, boolean cellHasFocus) {
+            Player player = game.getPlayer();
+            boolean equipped = value == player.getEquippedWeapon()
+                    || value == player.getEquippedArmor();
+            setBackground(isSelected ? HIGHLIGHT : INNER);
+            itemName.setText(value.getName());
+            itemName.setForeground(isSelected ? GameTheme.GOLD : GameTheme.TEXT);
+            itemMeta.setText(equipped ? "EQUIPPED" : itemCategory(value).split("  /  ")[0]);
+            itemMeta.setForeground(equipped ? SUCCESS : GameTheme.MUTED);
+            ImageIcon icon = iconFor(value, 34);
+            itemIcon.setIcon(icon);
+            itemIcon.setText(icon == null ? "?" : "");
+            return this;
         }
     }
 }

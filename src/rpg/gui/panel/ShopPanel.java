@@ -42,7 +42,6 @@ public class ShopPanel extends JPanel {
 
     private JButton buyButton;
     private JButton sellButton;
-    private JButton backButton;
 
     public ShopPanel(
             Game game,
@@ -101,8 +100,6 @@ public class ShopPanel extends JPanel {
         sellButton =
                 new JButton("Sell");
 
-        backButton =
-                new JButton("Back");
 
         buyButton.setEnabled(false);
         sellButton.setEnabled(false);
@@ -223,7 +220,7 @@ public class ShopPanel extends JPanel {
                 new JPanel(
                         new GridLayout(
                                 1,
-                                3,
+                                2,
                                 10,
                                 0
                         )
@@ -237,9 +234,6 @@ public class ShopPanel extends JPanel {
                 sellButton
         );
 
-        buttonPanel.add(
-                backButton
-        );
 
         add(
                 topPanel,
@@ -299,9 +293,6 @@ public class ShopPanel extends JPanel {
                 e -> sellSelectedItem()
         );
 
-        backButton.addActionListener(
-                e -> gameFrame.showHub()
-        );
     }
 
     // -------------------------
