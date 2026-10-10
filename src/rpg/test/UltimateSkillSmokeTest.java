@@ -104,7 +104,10 @@ public class UltimateSkillSmokeTest {
         player.addUltimateCharge(5);
         String log = battle.playerUseUltimate();
         check(battle.isVictory(), "finishing Ultimate did not trigger victory");
-        check(log.contains("Gained 25 EXP"), "victory rewards missing");
+        check(
+            log.contains("Gained " + rat.getExpReward() + " EXP"),
+            "victory rewards missing"
+        );
         check(player.getUltimateCharge() == 0, "finisher left charge unspent");
         player.addUltimateCharge(4);
         Path save = Files.createTempFile("heros-ultimate-test-", ".txt");
