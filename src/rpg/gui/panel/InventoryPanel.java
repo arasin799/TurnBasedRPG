@@ -245,7 +245,9 @@ public class InventoryPanel extends JPanel {
 
         Player player = game.getPlayer();
         selectedItemName.setText(item.getName().toUpperCase());
-        selectedItemCategory.setText(itemCategory(item));
+        selectedItemCategory.setText(item instanceof Weapon
+                && player.getClassWeaponDamageBonus((Weapon) item) > 0
+                ? "WEAPON / +7 CLASS EXTRA DMG" : itemCategory(item));
         ImageIcon picture = iconFor(item, 52);
         largeItemIcon.setIcon(picture);
         largeItemIcon.setText(picture == null ? "?" : "");
@@ -253,8 +255,18 @@ public class InventoryPanel extends JPanel {
         StringBuilder info = new StringBuilder();
         info.append(item.getDescription());
         if (item instanceof Weapon) {
+            Weapon weapon = (Weapon) item;
             info.append("\n\nATTACK BONUS: +")
-                    .append(((Weapon) item).getAttackBonus());
+                    .append(weapon.getAttackBonus());
+            int classBonus = player.getClassWeaponDamageBonus(weapon);
+            if (classBonus > 0) {
+                info.append("\nCLASS MATCH: +").append(classBonus)
+                        .append(" EXTRA DMG WHEN EQUIPPED");
+            } else if (!player.canEquipWeapon(weapon)) {
+                info.append("\nWRONG CLASS - CANNOT EQUIP");
+            } else {
+                info.append("\nCLASS EXTRA DMG: NONE");
+            }
         } else if (item instanceof Armor) {
             info.append("\n\nDEFENSE BONUS: +")
                     .append(((Armor) item).getDefenseBonus());
@@ -333,7 +345,9 @@ public class InventoryPanel extends JPanel {
                 player.unequipWeapon();
                 message = weapon.getName() + " unequipped.";
             } else if (player.equipWeapon(weapon)) {
-                message = weapon.getName() + " equipped.";
+                int extra = player.getEquippedClassWeaponDamageBonus();
+                message = weapon.getName() + " equipped."
+                        + (extra > 0 ? "\nClass weapon bonus: +" + extra + " Extra Damage!" : "");
             }
         } else if (item instanceof Armor) {
             Armor armor = (Armor) item;
@@ -362,7 +376,9 @@ public class InventoryPanel extends JPanel {
         Weapon weapon = player.getEquippedWeapon();
         Armor armor = player.getEquippedArmor();
         weaponLabel.setText(weapon == null ? "WEAPON: NONE"
-                : "WEAPON: " + weapon.getName() + "  (+" + weapon.getAttackBonus() + " ATK)");
+                : "WEAPON: " + weapon.getName() + "  (+" + weapon.getAttackBonus()
+                + " ATK" + (player.getEquippedClassWeaponDamageBonus() > 0
+                ? ", +7 DMG" : "") + ")");
         armorLabel.setText(armor == null ? "ARMOR: NONE"
                 : "ARMOR: " + armor.getName() + "  (+" + armor.getDefenseBonus() + " DEF)");
         ultimateLabel.setText("ULTIMATE CHARGE: " + player.getUltimateCharge()

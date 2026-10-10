@@ -35,7 +35,7 @@ public class Knight extends Player {
 
         int skillDamage = getAttack() + SKILL_DAMAGE_BONUS;
 
-        return target.takeDamage(skillDamage);
+        return dealWeaponBonusDamage(target, skillDamage);
     }
 
     @Override

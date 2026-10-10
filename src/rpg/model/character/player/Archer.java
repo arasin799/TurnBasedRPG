@@ -36,7 +36,7 @@ public class Archer extends Player {
 
         int skillDamage = getAttack() + SKILL_DAMAGE_BONUS;
 
-        return target.takeDamage(skillDamage);
+        return dealWeaponBonusDamage(target, skillDamage);
     }
 
     @Override

@@ -296,14 +296,25 @@ public class ShopPanel extends JPanel {
         }
         Player player = game.getPlayer();
         selectedNameLabel.setText(item.getName().toUpperCase(Locale.ROOT));
-        selectedCategoryLabel.setText((buying ? "BUY" : "SELL") + " / " + category(item));
+        selectedCategoryLabel.setText((buying ? "BUY" : "SELL") + " / "
+                + (item instanceof Weapon && player.getClassWeaponDamageBonus((Weapon) item) > 0
+                ? "CLASS BONUS +7 DMG" : category(item)));
         ImageIcon picture = iconFor(item, 59);
         selectedIconLabel.setIcon(picture);
         selectedIconLabel.setText(picture == null ? "?" : "");
 
         StringBuilder info = new StringBuilder(item.getDescription());
         if (item instanceof Weapon) {
-            info.append("\n+" + ((Weapon) item).getAttackBonus() + " ATK");
+            Weapon weapon = (Weapon) item;
+            info.append("\n+" + weapon.getAttackBonus() + " ATK");
+            int classBonus = player.getClassWeaponDamageBonus(weapon);
+            if (classBonus > 0) {
+                info.append("\nCLASS MATCH: +" + classBonus + " EXTRA DMG WHEN EQUIPPED");
+            } else if (!player.canEquipWeapon(weapon)) {
+                info.append("\nWRONG CLASS - CANNOT EQUIP");
+            } else {
+                info.append("\nCLASS EXTRA DMG: NONE");
+            }
         } else if (item instanceof Armor) {
             info.append("\n+" + ((Armor) item).getDefenseBonus() + " DEF");
         } else if (item instanceof Potion) {

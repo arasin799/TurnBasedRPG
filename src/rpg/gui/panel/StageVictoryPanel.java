@@ -37,31 +37,38 @@ public class StageVictoryPanel extends JPanel {
             boolean hasNextStage, List<String> droppedItems) {
 
         setBackground(GameTheme.BACKGROUND);
-        setLayout(new BorderLayout(0, 12));
-        setBorder(BorderFactory.createEmptyBorder(20, 27, 19, 27));
+        setLayout(new BorderLayout(0, 6));
+        setBorder(BorderFactory.createEmptyBorder(8, 27, 11, 27));
 
         JPanel heading = new JPanel();
         heading.setOpaque(false);
         heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
-        heading.add(label("VICTORY", 30, GameTheme.GOLD));
-        heading.add(Box.createVerticalStrut(7));
+        PixelTrophyPanel trophy = new PixelTrophyPanel(true);
+        trophy.setAlignmentX(CENTER_ALIGNMENT);
+        trophy.setPreferredSize(new Dimension(63, 56));
+        trophy.setMinimumSize(new Dimension(63, 56));
+        trophy.setMaximumSize(new Dimension(63, 56));
+        heading.add(trophy);
+        heading.add(Box.createVerticalStrut(2));
+        heading.add(label("VICTORY", 27, GameTheme.GOLD));
+        heading.add(Box.createVerticalStrut(3));
         heading.add(label(String.format("STAGE %02d  -  %s", stageIndex + 1,
-                monsterName.toUpperCase()), 14, GameTheme.TEXT));
+                monsterName.toUpperCase()), 12, GameTheme.TEXT));
         add(heading, BorderLayout.NORTH);
 
         JPanel rewards = new JPanel();
         rewards.setBackground(GameTheme.PANEL);
         rewards.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
-                BorderFactory.createEmptyBorder(17, 23, 18, 23)));
+                BorderFactory.createEmptyBorder(9, 17, 10, 17)));
         rewards.setLayout(new BoxLayout(rewards, BoxLayout.Y_AXIS));
         rewards.add(label("REWARDS", 11, GameTheme.MUTED));
-        rewards.add(Box.createVerticalStrut(11));
+        rewards.add(Box.createVerticalStrut(5));
 
         JPanel rewardRow = new JPanel(new GridLayout(1, 2, 16, 0));
         rewardRow.setOpaque(false);
-        rewardRow.setPreferredSize(new Dimension(460, 47));
-        rewardRow.setMaximumSize(new Dimension(460, 47));
+        rewardRow.setPreferredSize(new Dimension(460, 41));
+        rewardRow.setMaximumSize(new Dimension(460, 41));
         rewardRow.setAlignmentX(CENTER_ALIGNMENT);
         rewardRow.add(reward("assets/item/Exp.png", "+" + expReward + " EXP",
                 GREEN));
@@ -71,12 +78,12 @@ public class StageVictoryPanel extends JPanel {
 
         // Only show item rewards actually obtained from BattleManager.
         if (droppedItems != null && !droppedItems.isEmpty()) {
-            rewards.add(Box.createVerticalStrut(13));
+            rewards.add(Box.createVerticalStrut(6));
             rewards.add(label(droppedItems.size() == 1
-                    ? "ITEM OBTAINED" : "ITEMS OBTAINED", 11, GREEN));
-            rewards.add(Box.createVerticalStrut(5));
+                    ? "ITEM OBTAINED" : "ITEMS OBTAINED", 10, GREEN));
+            rewards.add(Box.createVerticalStrut(2));
             for (String itemName : droppedItems) {
-                rewards.add(label(itemName, 12, GameTheme.TEXT));
+                rewards.add(label(itemName, 11, GameTheme.TEXT));
             }
         }
 

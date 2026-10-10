@@ -4,8 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 
@@ -37,15 +35,13 @@ public class GameResultPanel extends JPanel {
         details.setOpaque(false);
         details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
 
-        if (!victory) {
-            JPanel trophy = new GrayTrophy();
-            trophy.setAlignmentX(CENTER_ALIGNMENT);
-            trophy.setPreferredSize(new Dimension(93, 92));
-            trophy.setMinimumSize(new Dimension(93, 92));
-            trophy.setMaximumSize(new Dimension(93, 92));
-            details.add(trophy);
-            details.add(Box.createVerticalStrut(9));
-        }
+        PixelTrophyPanel trophy = new PixelTrophyPanel(victory);
+        trophy.setAlignmentX(CENTER_ALIGNMENT);
+        trophy.setPreferredSize(new Dimension(93, 92));
+        trophy.setMinimumSize(new Dimension(93, 92));
+        trophy.setMaximumSize(new Dimension(93, 92));
+        details.add(trophy);
+        details.add(Box.createVerticalStrut(9));
         details.add(label(victory ? "VICTORY" : "GAME OVER", 31,
                 victory ? GameTheme.GOLD : GRAY_TEXT));
         details.add(Box.createVerticalStrut(15));
@@ -97,38 +93,4 @@ public class GameResultPanel extends JPanel {
         return button;
     }
 
-    /** Draws a small, flat gray pixel trophy without glow or extra assets. */
-    private static final class GrayTrophy extends JPanel {
-        GrayTrophy() {
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            super.paintComponent(graphics);
-            Graphics2D g = (Graphics2D) graphics.create();
-            int x = (getWidth() - 72) / 2;
-            int y = 5;
-            g.setColor(GRAY_PANEL);
-            g.fillRect(x, y, 72, 79);
-            g.setColor(GRAY_BORDER);
-            g.drawRect(x, y, 71, 78);
-
-            // Cup and handles, built from aligned blocks to match existing sprites.
-            g.setColor(new Color(174, 179, 188));
-            g.fillRect(x + 19, y + 14, 34, 26);
-            g.fillRect(x + 10, y + 16, 9, 8);
-            g.fillRect(x + 7, y + 22, 8, 12);
-            g.fillRect(x + 53, y + 16, 9, 8);
-            g.fillRect(x + 57, y + 22, 8, 12);
-            g.fillRect(x + 26, y + 40, 20, 9);
-            g.fillRect(x + 32, y + 49, 8, 11);
-            g.fillRect(x + 19, y + 60, 34, 7);
-            // Simple gray shadow/shading; no glitter or gold.
-            g.setColor(new Color(115, 120, 130));
-            g.fillRect(x + 44, y + 18, 9, 20);
-            g.fillRect(x + 26, y + 40, 20, 4);
-            g.dispose();
-        }
-    }
 }

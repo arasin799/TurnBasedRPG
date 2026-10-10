@@ -3,6 +3,7 @@ package rpg.model.character.player;
 import rpg.model.Inventory;
 import rpg.model.character.Character;
 import rpg.model.item.Weapon;
+import rpg.model.item.WeaponType;
 import rpg.model.item.Armor;
 
 public abstract class Player extends Character {
@@ -13,6 +14,7 @@ public abstract class Player extends Character {
 
     // Charge persists across battles and is spent by Ultimate skills.
     private static final int MAX_ULTIMATE_CHARGE = 5;
+    private static final int CLASS_WEAPON_EXTRA_DAMAGE = 7;
     private int ultimateCharge = 0;
 
     private Weapon equippedWeapon;
@@ -94,7 +96,8 @@ public abstract class Player extends Character {
             return -1;
         }
         ultimateCharge = 0;
-        return target.takeSpecialDamage(getAttack(), getUltimateDamageBonus());
+        return target.takeSpecialDamage(getAttack(),
+                getUltimateDamageBonus() + getEquippedClassWeaponDamageBonus());
     }
 
     public Weapon getEquippedWeapon() {
@@ -169,6 +172,31 @@ public abstract class Player extends Character {
         }
 
         return totalAttack;
+    }
+
+    /** The dedicated class weapon grants +7 extra damage (not extra ATK). */
+    public int getClassWeaponDamageBonus(Weapon weapon) {
+        if (weapon == null) return 0;
+        WeaponType type = weapon.getWeaponType();
+        boolean matches = (this instanceof Knight && type == WeaponType.SWORD)
+                || (this instanceof Archer && type == WeaponType.BOW)
+                || (this instanceof Mage && type == WeaponType.STAFF);
+        return matches ? CLASS_WEAPON_EXTRA_DAMAGE : 0;
+    }
+
+    public int getEquippedClassWeaponDamageBonus() {
+        return getClassWeaponDamageBonus(equippedWeapon);
+    }
+
+    /** Apply the class-match bonus after regular defense calculations. */
+    protected final int dealWeaponBonusDamage(Character target, int baseDamage) {
+        return target == null ? 0
+                : target.takeSpecialDamage(baseDamage, getEquippedClassWeaponDamageBonus());
+    }
+
+    @Override
+    public int attack(Character target) {
+        return dealWeaponBonusDamage(target, getAttack());
     }
 
     @Override
