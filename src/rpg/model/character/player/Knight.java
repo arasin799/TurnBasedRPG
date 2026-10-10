@@ -68,20 +68,15 @@ public class Knight extends Player {
     }
 
     @Override
-    public boolean canEquipWeapon(
-            Weapon weapon) {
-
-        WeaponType type =
-                weapon.getWeaponType();
-
-        return type == WeaponType.SWORD
-                || type == WeaponType.DAGGER;
+    public boolean canEquipWeapon(Weapon weapon) {
+        // Any hero may equip any weapon; attack benefits depend on class.
+        return weapon != null;
     }
 
    @Override
     public boolean canEquipArmor(
             Armor armor) {
 
-        return true;
+        return armor != null;
     } 
 }

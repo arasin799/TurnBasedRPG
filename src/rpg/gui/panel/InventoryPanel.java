@@ -256,16 +256,16 @@ public class InventoryPanel extends JPanel {
         info.append(item.getDescription());
         if (item instanceof Weapon) {
             Weapon weapon = (Weapon) item;
-            info.append("\n\nATTACK BONUS: +")
-                    .append(weapon.getAttackBonus());
+            info.append("\n\nEQUIPPED ATK: +")
+                    .append(player.getWeaponAttackBonus(weapon));
             int classBonus = player.getClassWeaponDamageBonus(weapon);
             if (classBonus > 0) {
                 info.append("\nCLASS MATCH: +").append(classBonus)
                         .append(" EXTRA DMG WHEN EQUIPPED");
-            } else if (!player.canEquipWeapon(weapon)) {
-                info.append("\nWRONG CLASS - CANNOT EQUIP");
+            } else if (weapon.getWeaponType() == rpg.model.item.WeaponType.DAGGER) {
+                info.append("\nUNIVERSAL WEAPON - NO EXTRA DMG");
             } else {
-                info.append("\nCLASS EXTRA DMG: NONE");
+                info.append("\nOFF-CLASS: +7 ATK, NO EXTRA DMG");
             }
         } else if (item instanceof Armor) {
             info.append("\n\nDEFENSE BONUS: +")
@@ -376,7 +376,7 @@ public class InventoryPanel extends JPanel {
         Weapon weapon = player.getEquippedWeapon();
         Armor armor = player.getEquippedArmor();
         weaponLabel.setText(weapon == null ? "WEAPON: NONE"
-                : "WEAPON: " + weapon.getName() + "  (+" + weapon.getAttackBonus()
+                : "WEAPON: " + weapon.getName() + "  (+" + player.getWeaponAttackBonus(weapon)
                 + " ATK" + (player.getEquippedClassWeaponDamageBonus() > 0
                 ? ", +7 DMG" : "") + ")");
         armorLabel.setText(armor == null ? "ARMOR: NONE"

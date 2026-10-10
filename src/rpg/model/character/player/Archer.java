@@ -69,21 +69,15 @@ public class Archer extends Player {
     }
 
     @Override
-    public boolean canEquipWeapon(
-            Weapon weapon) {
-
-        WeaponType type =
-                weapon.getWeaponType();
-
-        return type == WeaponType.BOW
-                || type == WeaponType.DAGGER;
+    public boolean canEquipWeapon(Weapon weapon) {
+        // Any hero may equip any weapon; attack benefits depend on class.
+        return weapon != null;
     }
 
     @Override
     public boolean canEquipArmor(
             Armor armor) {
 
-        return armor.getArmorType()
-                != ArmorType.IRON_SHIELD;
+        return armor != null;
     }    
 }

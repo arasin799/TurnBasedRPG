@@ -306,14 +306,14 @@ public class ShopPanel extends JPanel {
         StringBuilder info = new StringBuilder(item.getDescription());
         if (item instanceof Weapon) {
             Weapon weapon = (Weapon) item;
-            info.append("\n+" + weapon.getAttackBonus() + " ATK");
+            info.append("\nEQUIPPED ATK: +" + player.getWeaponAttackBonus(weapon));
             int classBonus = player.getClassWeaponDamageBonus(weapon);
             if (classBonus > 0) {
                 info.append("\nCLASS MATCH: +" + classBonus + " EXTRA DMG WHEN EQUIPPED");
-            } else if (!player.canEquipWeapon(weapon)) {
-                info.append("\nWRONG CLASS - CANNOT EQUIP");
+            } else if (weapon.getWeaponType() == rpg.model.item.WeaponType.DAGGER) {
+                info.append("\nUNIVERSAL WEAPON - NO EXTRA DMG");
             } else {
-                info.append("\nCLASS EXTRA DMG: NONE");
+                info.append("\nOFF-CLASS: +7 ATK, NO EXTRA DMG");
             }
         } else if (item instanceof Armor) {
             info.append("\n+" + ((Armor) item).getDefenseBonus() + " DEF");
@@ -335,7 +335,13 @@ public class ShopPanel extends JPanel {
         itemInfoArea.setText(info.toString());
         itemInfoArea.setCaretPosition(0);
 
-        buyButton.setEnabled(buying);
+        boolean alreadyOwned = buying && item instanceof Weapon
+                && shop.alreadyOwnsWeapon(player, (Weapon) item);
+        if (alreadyOwned) {
+            itemInfoArea.append("\nALREADY OWNED: ONE WEAPON PER TYPE");
+        }
+        buyButton.setEnabled(buying && !alreadyOwned
+                && player.getGold() >= item.getBuyPrice());
         sellButton.setEnabled(!buying && item.getSellPrice() > 0
                 && !(item instanceof SoulShard)
                 && item != player.getEquippedWeapon()
@@ -363,6 +369,10 @@ public class ShopPanel extends JPanel {
         } catch (NotEnoughGoldException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(),
                     "Not Enough Gold", JOptionPane.WARNING_MESSAGE);
+        } catch (IllegalStateException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(),
+                    "Already Owned", JOptionPane.INFORMATION_MESSAGE);
+            refreshShop();
         }
     }
 
@@ -475,8 +485,12 @@ public class ShopPanel extends JPanel {
             boolean equipped = value == game.getPlayer().getEquippedWeapon()
                     || value == game.getPlayer().getEquippedArmor();
             if (buying) {
-                priceLabel.setText("BUY  " + value.getBuyPrice() + " GOLD");
-                priceLabel.setForeground(value.getBuyPrice() > game.getPlayer().getGold()
+                boolean owned = value instanceof Weapon
+                        && shop.alreadyOwnsWeapon(game.getPlayer(), (Weapon) value);
+                priceLabel.setText(owned ? "OWNED / MAX 1" : "BUY  "
+                        + value.getBuyPrice() + " GOLD");
+                priceLabel.setForeground(owned ? SUCCESS
+                        : value.getBuyPrice() > game.getPlayer().getGold()
                         ? new Color(229, 142, 139) : GameTheme.MUTED);
             } else if (equipped) {
                 priceLabel.setText("EQUIPPED / CANNOT SELL");

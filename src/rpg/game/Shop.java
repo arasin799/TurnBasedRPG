@@ -100,7 +100,7 @@ public class Shop {
         itemsForSale.add(
                 new Armor(
                         "Iron Shield",
-                        "A heavy shield usable only by Knights.",
+                        "A heavy shield usable by every class.",
                         280,
                         140,
                         12,
@@ -130,6 +130,18 @@ public class Shop {
         return new ArrayList<>(itemsForSale);
     }
 
+    /** At most one weapon of each kind may be owned at a time. */
+    public boolean alreadyOwnsWeapon(Player player, Weapon weapon) {
+        if (player == null || weapon == null) return false;
+        for (Item owned : player.getInventory().getItems()) {
+            if (owned instanceof Weapon
+                    && ((Weapon) owned).getWeaponType() == weapon.getWeaponType()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // -------------------------
     // Buy
     // -------------------------
@@ -143,6 +155,12 @@ public class Shop {
 
         if (!itemsForSale.contains(item)) {
             return;
+        }
+
+        if (item instanceof Weapon && alreadyOwnsWeapon(player, (Weapon) item)) {
+            throw new IllegalStateException(
+                    "You already own one " + item.getName()
+                    + ". Sell it first if you want to buy another.");
         }
 
         if (player.getGold()

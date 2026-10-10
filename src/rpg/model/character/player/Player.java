@@ -15,6 +15,8 @@ public abstract class Player extends Character {
     // Charge persists across battles and is spent by Ultimate skills.
     private static final int MAX_ULTIMATE_CHARGE = 5;
     private static final int CLASS_WEAPON_EXTRA_DAMAGE = 7;
+    private static final int CLASS_WEAPON_ATTACK_BONUS = 10;
+    private static final int OFF_CLASS_WEAPON_ATTACK_BONUS = 7;
     private int ultimateCharge = 0;
 
     private Weapon equippedWeapon;
@@ -168,7 +170,7 @@ public abstract class Player extends Character {
         int totalAttack = super.getAttack();
 
         if (equippedWeapon != null) {
-            totalAttack += equippedWeapon.getAttackBonus();
+            totalAttack += getWeaponAttackBonus(equippedWeapon);
         }
 
         return totalAttack;
@@ -182,6 +184,18 @@ public abstract class Player extends Character {
                 || (this instanceof Archer && type == WeaponType.BOW)
                 || (this instanceof Mage && type == WeaponType.STAFF);
         return matches ? CLASS_WEAPON_EXTRA_DAMAGE : 0;
+    }
+
+    /** Effective attack from one equipped weapon; no weapon stacking. */
+    public int getWeaponAttackBonus(Weapon weapon) {
+        if (weapon == null) return 0;
+        // Dagger is a universal starter weapon (+5 ATK as before).
+        if (weapon.getWeaponType() == WeaponType.DAGGER) {
+            return weapon.getAttackBonus();
+        }
+        // Dedicated weapon: +10 ATK for the matching class, +7 otherwise.
+        return getClassWeaponDamageBonus(weapon) > 0
+                ? CLASS_WEAPON_ATTACK_BONUS : OFF_CLASS_WEAPON_ATTACK_BONUS;
     }
 
     public int getEquippedClassWeaponDamageBonus() {

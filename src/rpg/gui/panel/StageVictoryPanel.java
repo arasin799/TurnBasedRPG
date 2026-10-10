@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.GridBagLayout;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -95,12 +96,15 @@ public class StageVictoryPanel extends JPanel {
             }
         }
 
-        // Anchor rewards right below the heading even when no item drops.
-        // The extra available space belongs BELOW the rewards, not between them.
+        // Keep all victory content together, centered vertically in the space
+        // between the persistent Player HUD and the action buttons.
         rewards.setAlignmentX(CENTER_ALIGNMENT);
         rewards.setMaximumSize(new Dimension(500, 210));
         content.add(rewards);
-        add(content, BorderLayout.NORTH);
+        JPanel centeredContent = new JPanel(new GridBagLayout());
+        centeredContent.setOpaque(false);
+        centeredContent.add(content);
+        add(centeredContent, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 3, 10, 0));
         actions.setOpaque(false);
