@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -40,6 +39,13 @@ public class StageVictoryPanel extends JPanel {
         setLayout(new BorderLayout(0, 6));
         setBorder(BorderFactory.createEmptyBorder(8, 27, 11, 27));
 
+        // Keep the trophy, stage title and rewards in ONE vertical group.
+        // In GameFrame the persistent player HUD reduces our available height;
+        // centering rewards in BorderLayout.CENTER previously created a huge gap.
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
         JPanel heading = new JPanel();
         heading.setOpaque(false);
         heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
@@ -54,7 +60,9 @@ public class StageVictoryPanel extends JPanel {
         heading.add(Box.createVerticalStrut(3));
         heading.add(label(String.format("STAGE %02d  -  %s", stageIndex + 1,
                 monsterName.toUpperCase()), 12, GameTheme.TEXT));
-        add(heading, BorderLayout.NORTH);
+        heading.setAlignmentX(CENTER_ALIGNMENT);
+        content.add(heading);
+        content.add(Box.createVerticalStrut(12));
 
         JPanel rewards = new JPanel();
         rewards.setBackground(GameTheme.PANEL);
@@ -87,10 +95,12 @@ public class StageVictoryPanel extends JPanel {
             }
         }
 
-        JPanel centered = new JPanel(new GridBagLayout());
-        centered.setOpaque(false);
-        centered.add(rewards);
-        add(centered, BorderLayout.CENTER);
+        // Anchor rewards right below the heading even when no item drops.
+        // The extra available space belongs BELOW the rewards, not between them.
+        rewards.setAlignmentX(CENTER_ALIGNMENT);
+        rewards.setMaximumSize(new Dimension(500, 210));
+        content.add(rewards);
+        add(content, BorderLayout.NORTH);
 
         JPanel actions = new JPanel(new GridLayout(1, 3, 10, 0));
         actions.setOpaque(false);
