@@ -25,6 +25,7 @@ public class DarkMage extends Monster {
                 rollGold(170, 230),
                 true
         );
+        configureUltimate("Abyss Nova", 5, 25, 28);
     }
 
     // Soul Shard drop chance from the design spreadsheet.

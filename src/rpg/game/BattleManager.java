@@ -366,6 +366,26 @@ public class BattleManager {
             return "";
         }
 
+        int playerHpBefore = player.getHp();
+
+        // A full enemy charge takes priority over random Special Skills.
+        // During Spider's skipped/stunned turn (allowSpecialSkill=false),
+        // the monster makes a normal attack rather than using an Ultimate.
+        if (allowSpecialSkill && monster.isUltimateReady()) {
+            int damage = monster.useUltimate(player);
+            if (damage >= 0) {
+                String ultimateMessage = monster.getName()
+                        + " uses ULTIMATE " + monster.getUltimateSkillName()
+                        + " on " + player.getName()
+                        + " for " + damage + " damage!";
+                if (!player.isAlive()) {
+                    battleOver = true;
+                    ultimateMessage += "\n" + player.getName() + " has been defeated.";
+                }
+                return ultimateMessage;
+            }
+        }
+
         String message;
 
         MonsterSkillResult skillResult = null;
@@ -405,6 +425,11 @@ public class BattleManager {
                     + " for "
                     + damage
                     + " damage.";
+        }
+
+        // Monster gains charge only when a normal or Special hit lands.
+        if (player.getHp() < playerHpBefore) {
+            monster.gainUltimateCharge();
         }
 
         if (!player.isAlive()) {

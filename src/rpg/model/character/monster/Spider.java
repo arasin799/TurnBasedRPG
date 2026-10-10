@@ -29,6 +29,7 @@ public class Spider extends Monster {
                 rollGold(30, 50),
                 false
         );
+        configureUltimate("Venom Burst", 4, 5, 12);
     }
 
     // Soul Shard drop chance from the design spreadsheet.

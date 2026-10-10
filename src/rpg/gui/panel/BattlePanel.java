@@ -42,6 +42,7 @@ public class BattlePanel extends JPanel {
     private JProgressBar playerHpBar;
     private JProgressBar playerMpBar;
     private JProgressBar monsterHpBar;
+    private JProgressBar monsterUltimateBar;
     private JTextArea battleLog;
     private BattleArenaPanel arena;
     private static final Pattern DAMAGE_PATTERN =
@@ -125,8 +126,8 @@ public class BattlePanel extends JPanel {
         JPanel monsterBars = new JPanel(new GridLayout(2, 1, 0, 5));
         monsterBars.setOpaque(false);
         monsterBars.add(monsterHpBar);
-        monsterBars.add(label(battle.getMonster().isBoss()
-                ? "BOSS - ESCAPE DISABLED" : "ENEMY ENCOUNTER", 10, GameTheme.MUTED));
+        monsterUltimateBar = bar(new Color(165, 116, 232));
+        monsterBars.add(monsterUltimateBar);
         monsterCard.add(monsterBars, BorderLayout.CENTER);
 
         topPanel.add(playerCard);
@@ -233,8 +234,10 @@ public class BattlePanel extends JPanel {
                 arena.queueRecovery(Integer.parseInt(recovery.group(1)),
                         recovery.group(2).equals("MP"));
             }
-            if (line.contains(" uses ULTIMATE ")) {
-                arena.queueStatus(false, "ULTIMATE!");
+            if (line.startsWith(hero + " uses ULTIMATE ")) {
+                arena.queueStatus(true, "HERO ULTIMATE!");
+            } else if (line.startsWith(enemy + " uses ULTIMATE ")) {
+                arena.queueStatus(false, "ENEMY ULTIMATE!");
             }
             if (line.contains("is stunned and misses a turn")) {
                 arena.queueStatus(true, "TURN SKIPPED");
@@ -346,7 +349,8 @@ public class BattlePanel extends JPanel {
         Monster monster = battle.getMonster();
         playerNameLabel.setText(player.getName() + " / "
                 + player.getClass().getSimpleName().toUpperCase());
-        monsterNameLabel.setText("ENEMY: " + monster.getName().toUpperCase());
+        monsterNameLabel.setText((monster.isBoss() ? "BOSS: " : "ENEMY: ")
+                + monster.getName().toUpperCase());
         stunStatusLabel.setText(battle.isPlayerStunned()
                 ? "STUNNED - NEXT ACTION SKIPPED" : "");
         setBar(playerHpBar, player.getHp(), player.getMaxHp(), "HP");
@@ -355,6 +359,12 @@ public class BattlePanel extends JPanel {
                 + "   |   ULT " + player.getUltimateCharge()
                 + "/" + player.getMaxUltimateCharge());
         setBar(monsterHpBar, monster.getHp(), monster.getMaxHp(), "HP");
+        setBar(monsterUltimateBar, monster.getUltimateCharge(),
+                monster.getUltimateChargeRequired(), "ULT");
+        if (monster.isUltimateReady()) {
+            monsterUltimateBar.setString("ULT READY! " + monster.getUltimateCharge()
+                    + "/" + monster.getUltimateChargeRequired());
+        }
         skillButton.setText(player.getSkillName().toUpperCase());
         skillButton.setToolTipText("Spend MP to use " + player.getSkillName());
         ultimateButton.setText("ULTIMATE " + player.getUltimateCharge()

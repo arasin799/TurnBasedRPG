@@ -29,6 +29,7 @@ public class Rat extends Monster {
                 rollGold(10, 30),
                 false
         );
+        configureUltimate("Feral Rush", 3, 0, 10);
     }
 
     // Soul Shard drop chance from the design spreadsheet.

@@ -31,6 +31,7 @@ public class Cyclops extends Monster {
                 rollGold(80, 120),
                 false
         );
+        configureUltimate("Earthshaker", 5, 15, 20);
     }
 
     // Soul Shard drop chance from the design spreadsheet.

@@ -29,6 +29,7 @@ public class Ghost extends Monster {
                 rollGold(50, 80),
                 false
         );
+        configureUltimate("Phantom Surge", 4, 10, 16);
     }
 
     // Soul Shard drop chance from the design spreadsheet.
