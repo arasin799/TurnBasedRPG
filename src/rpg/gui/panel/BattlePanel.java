@@ -254,9 +254,57 @@ public class BattlePanel extends JPanel {
     private void setActionButtonsEnabled(boolean enabled) {
         attackButton.setEnabled(enabled);
         skillButton.setEnabled(enabled);
-        ultimateButton.setEnabled(enabled && battle.getPlayer().canUseUltimate());
+        // Charge, MP and Stun must all permit the Ultimate action.
+        ultimateButton.setEnabled(enabled && battle.getPlayer().canUseUltimate()
+                && !battle.isPlayerStunned());
         itemButton.setEnabled(enabled);
         escapeButton.setEnabled(enabled && !battle.getMonster().isBoss());
+        updateUltimateButtonVisual();
+    }
+
+    /** Distinct READY appearance without changing the combat rules. */
+    private void updateUltimateButtonVisual() {
+        Player player = battle.getPlayer();
+        int charge = player.getUltimateCharge();
+        int maximum = player.getMaxUltimateCharge();
+        int mpCost = player.getUltimateMpCost();
+        boolean chargeFull = charge >= maximum;
+        boolean mpEnough = player.getMp() >= mpCost;
+        boolean readyToClick = ultimateButton.isEnabled()
+                && !battle.isPlayerStunned() && !battle.isBattleOver();
+
+        if (readyToClick) {
+            // Violet + bright gold outline stands out from the gold ATTACK button.
+            ultimateButton.setText("ULTIMATE READY!");
+            ultimateButton.setBackground(new Color(103, 61, 180));
+            ultimateButton.setForeground(new Color(255, 240, 181));
+            ultimateButton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(255, 216, 105), 3),
+                    BorderFactory.createEmptyBorder(5, 3, 5, 3)));
+            ultimateButton.setToolTipText("READY! " + player.getUltimateSkillName()
+                    + " | Uses " + mpCost + " MP and " + maximum + " charges.");
+        } else {
+            ultimateButton.setText(chargeFull && !mpEnough
+                    ? "ULT MP LOW" : "ULTIMATE " + charge + "/" + maximum);
+            ultimateButton.setBackground(GameTheme.PANEL);
+            ultimateButton.setForeground(GameTheme.MUTED);
+            ultimateButton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(GameTheme.PANEL_BORDER, 2),
+                    BorderFactory.createEmptyBorder(6, 3, 6, 3)));
+            if (battle.isPlayerStunned()) {
+                ultimateButton.setToolTipText("STUNNED: skip your next turn first.");
+            } else if (chargeFull && !mpEnough) {
+                ultimateButton.setToolTipText("Need " + (mpCost - player.getMp())
+                        + " more MP for " + player.getUltimateSkillName() + ".");
+            } else {
+                ultimateButton.setToolTipText(player.getUltimateSkillName()
+                        + " | Charge " + charge + "/" + maximum
+                        + " | Costs " + mpCost + " MP.");
+            }
+        }
+        ultimateButton.setOpaque(true);
+        ultimateButton.setContentAreaFilled(true);
+        ultimateButton.repaint();
     }
 
     private void attack() {
@@ -367,10 +415,7 @@ public class BattlePanel extends JPanel {
         }
         skillButton.setText(player.getSkillName().toUpperCase());
         skillButton.setToolTipText("Spend MP to use " + player.getSkillName());
-        ultimateButton.setText("ULTIMATE " + player.getUltimateCharge()
-                + "/" + player.getMaxUltimateCharge());
-        ultimateButton.setToolTipText(player.getUltimateSkillName()
-                + " | Costs " + player.getUltimateMpCost() + " MP and 5 charges.");
+        updateUltimateButtonVisual();
         if (monster.isBoss()) {
             escapeButton.setEnabled(false);
             escapeButton.setToolTipText("You cannot escape from a boss battle.");
@@ -394,5 +439,6 @@ public class BattlePanel extends JPanel {
         ultimateButton.setEnabled(false);
         itemButton.setEnabled(false);
         escapeButton.setEnabled(false);
+        updateUltimateButtonVisual();
     }
 }
