@@ -29,6 +29,12 @@ public class BattleArenaPanel extends JPanel {
     private static final Color FLOOR = new Color(34, 48, 72);
     private static final Color FLOOR_HIGHLIGHT = new Color(57, 75, 101);
 
+    // Floating text: 32 frames x 40 ms = about 1.28 seconds per effect.
+    // Keep text fully readable for the first 24 frames, then fade it away.
+    private static final int EFFECT_FRAME_MS = 40;
+    private static final int EFFECT_DURATION_TICKS = 32;
+    private static final int EFFECT_SOLID_TICKS = 24;
+
     private final BattleManager battle;
     private final BufferedImage playerSprite;
     private final BufferedImage monsterSprite;
@@ -95,10 +101,10 @@ public class BattleArenaPanel extends JPanel {
             }
             return;
         }
-        effectTimer = new Timer(40, event -> {
+        effectTimer = new Timer(EFFECT_FRAME_MS, event -> {
             effectTick++;
             repaint();
-            if (effectTick >= 13) {
+            if (effectTick >= EFFECT_DURATION_TICKS) {
                 showNextEffect();
             }
         });
@@ -199,7 +205,11 @@ public class BattleArenaPanel extends JPanel {
             return;
         }
         int x = activeEffect.onPlayer ? leftX : rightX;
-        float alpha = Math.max(0.18f, 1.0f - effectTick / 16.0f);
+        // Hold at full opacity, then fade during the last 8 frames.
+        float alpha = effectTick <= EFFECT_SOLID_TICKS
+                ? 1.0f
+                : Math.max(0.0f, 1.0f - (effectTick - EFFECT_SOLID_TICKS)
+                        / (float) (EFFECT_DURATION_TICKS - EFFECT_SOLID_TICKS));
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
 
         // Brief square hit flash: pixel-style rather than smooth circles.
@@ -214,7 +224,8 @@ public class BattleArenaPanel extends JPanel {
         String text = activeEffect.text;
         g.setFont(new Font("Monospaced", Font.BOLD, text.length() > 12 ? 15 : 21));
         int textWidth = g.getFontMetrics().stringWidth(text);
-        int y = Math.max(30, h - 76 - effectTick * 2);
+        // Float slowly and then settle, rather than drifting off the screen.
+        int y = Math.max(30, h - 76 - Math.min(effectTick, 20));
         int width = textWidth + 16;
         g.setColor(new Color(10, 15, 29, 220));
         g.fillRect(x - width / 2, y - 24, width, 31);
