@@ -15,7 +15,6 @@ public class Rat extends Monster {
     private static final int DEFENSE = 2;
 
     private static final int EXP_REWARD = 40;
-    private static final int GOLD_REWARD = 25;
 
     public Rat() {
 

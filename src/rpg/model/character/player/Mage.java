@@ -2,9 +2,7 @@ package rpg.model.character.player;
 
 import rpg.model.character.Character;
 import rpg.model.item.Armor;
-import rpg.model.item.ArmorType;
 import rpg.model.item.Weapon;
-import rpg.model.item.WeaponType;
 
 public class Mage extends Player {
 

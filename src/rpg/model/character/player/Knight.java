@@ -2,7 +2,6 @@ package rpg.model.character.player;
 
 import rpg.model.character.Character;
 import rpg.model.item.Weapon;
-import rpg.model.item.WeaponType;
 import rpg.model.item.Armor;
 
 public class Knight extends Player {

@@ -13,7 +13,6 @@ public class DarkMage extends Monster {
     private static final int DEFENSE = 18;
 
     private static final int EXP_REWARD = 300;
-    private static final int GOLD_REWARD = 200;
 
     public DarkMage() {
 

@@ -16,7 +16,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.plaf.basic.BasicProgressBarUI;
-import javax.swing.SwingConstants;
 
 import rpg.game.Game;
 import rpg.model.character.player.Player;

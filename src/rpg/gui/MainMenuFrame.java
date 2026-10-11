@@ -3,7 +3,6 @@ package rpg.gui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridLayout;
 import java.io.IOException;
 
 import javax.swing.BorderFactory;

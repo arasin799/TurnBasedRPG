@@ -15,7 +15,6 @@ public class Spider extends Monster {
     private static final int DEFENSE = 4;
 
     private static final int EXP_REWARD = 75;
-    private static final int GOLD_REWARD = 40;
 
     public Spider() {
 

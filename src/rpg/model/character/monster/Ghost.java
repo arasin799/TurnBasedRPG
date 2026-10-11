@@ -17,7 +17,6 @@ public class Ghost extends Monster {
     private static final int DEFENSE = 7;
 
     private static final int EXP_REWARD = 110;
-    private static final int GOLD_REWARD = 60;
 
     public Ghost() {
 

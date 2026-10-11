@@ -20,7 +20,6 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
-import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;

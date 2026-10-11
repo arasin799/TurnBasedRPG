@@ -17,7 +17,6 @@ public class Cyclops extends Monster {
     private static final int DEFENSE = 12;
 
     private static final int EXP_REWARD = 150;
-    private static final int GOLD_REWARD = 100;
 
     public Cyclops() {
 
