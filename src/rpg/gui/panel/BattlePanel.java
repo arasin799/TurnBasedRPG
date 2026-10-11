@@ -494,7 +494,8 @@ public class BattlePanel extends JPanel {
                     + "/" + monster.getUltimateChargeRequired());
         }
         skillButton.setText(player.getSkillName().toUpperCase());
-        skillButton.setToolTipText("Spend MP to use " + player.getSkillName());
+        skillButton.setToolTipText("Requires " + player.getSkillMpCost()
+                + " MP to use " + player.getSkillName() + ".");
         updateUltimateButtonVisual();
         if (monster.isBoss()) {
             escapeButton.setEnabled(false);

@@ -27,6 +27,11 @@ public class Knight extends Player {
     }
 
     @Override
+    public int getSkillMpCost() {
+        return SKILL_MP_COST;
+    }
+
+    @Override
     public int useSkill(Character target) {
 
         if (!consumeMp(SKILL_MP_COST)) {

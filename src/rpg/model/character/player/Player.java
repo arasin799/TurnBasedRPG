@@ -347,6 +347,9 @@ public abstract class Player extends Character {
 
     public abstract String getSkillName();
 
+    /** MP required by this hero class's normal Skill. */
+    public abstract int getSkillMpCost();
+
     public abstract String getUltimateSkillName();
 
     public abstract int getUltimateMpCost();
