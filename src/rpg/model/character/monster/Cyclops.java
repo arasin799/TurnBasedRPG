@@ -13,7 +13,7 @@ public class Cyclops extends Monster {
 
     private static final int HP = 310;
     private static final int MP = 40;
-    private static final int ATTACK = 22;
+    private static final int ATTACK = 42;
     private static final int DEFENSE = 12;
 
     private static final int EXP_REWARD = 150;
@@ -31,7 +31,7 @@ public class Cyclops extends Monster {
                 rollGold(120, 170),
                 false
         );
-        configureUltimate("Earthshaker", 5, 15, 20);
+        configureUltimate("Earthshaker", 5, 15, 32);
     }
 
     // Higher Soul Shard chance for more rewarding stage farming.
@@ -77,7 +77,7 @@ public class Cyclops extends Monster {
     }
 
     private static final int SPECIAL_SKILL_CHANCE = 25;
-    private static final int HEAVY_SMASH_BONUS = 11;
+    private static final int HEAVY_SMASH_BONUS = 18;
     
     @Override
     public int getSpecialSkillChance() {

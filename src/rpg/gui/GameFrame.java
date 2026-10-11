@@ -69,6 +69,7 @@ public class GameFrame extends JFrame {
     // Remove old battle panels before showing a new challenge.
     private BattlePanel activeBattlePanel;
     private StageVictoryPanel activeVictoryPanel;
+    private GameResultPanel activeResultPanel;
     private StageSelectPanel activeStageSelectPanel;
 
     // Stage selected on the hub; does not change unlocked progress.
@@ -510,7 +511,12 @@ public class GameFrame extends JFrame {
         refreshGameInfo();
 
         if (victory) {
-            showVictoryScreen(completedStage, monsterName, expReward, goldReward, droppedItems);
+            // Final boss: show the final VICTORY immediately, without View Ending.
+            if (completedStage == game.getStageCount() - 1) {
+                showGameResult(true);
+            } else {
+                showVictoryScreen(completedStage, monsterName, expReward, goldReward, droppedItems);
+            }
         } else if (defeat) {
             showGameResult(false);
         } else {
@@ -543,7 +549,7 @@ public class GameFrame extends JFrame {
         centerPanel.revalidate();
         centerPanel.repaint();
         setNavigationEnabled(false);
-        // Victory has its own 3 buttons; hide inactive Hub buttons.
+        // Stage Victory has its own action buttons; hide inactive Hub buttons.
         showNavigation(null);
         revalidate();
         repaint();
@@ -563,28 +569,22 @@ public class GameFrame extends JFrame {
         selectStage();
     }
 
-    public void viewEnding() {
-        showGameResult(true);
-    }
-
     private void showGameResult(
             boolean victory) {
 
-        GameResultPanel resultPanel =
-                new GameResultPanel(
-                        this,
-                        victory
-                );
-
-        centerPanel.add(
-                resultPanel,
-                "RESULT"
-        );
+        // Replace the previous result card when replaying the final boss.
+        if (activeResultPanel != null) {
+            centerPanel.remove(activeResultPanel);
+        }
+        activeResultPanel = new GameResultPanel(this, victory);
+        centerPanel.add(activeResultPanel, "RESULT");
 
         centerLayout.show(
                 centerPanel,
                 "RESULT"
         );
+        centerPanel.revalidate();
+        centerPanel.repaint();
 
         setNavigationEnabled(false);
         showNavigation(null);

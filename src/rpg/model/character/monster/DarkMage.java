@@ -9,7 +9,7 @@ public class DarkMage extends Monster {
 
     private static final int HP = 350;
     private static final int MP = 100;
-    private static final int ATTACK = 22;
+    private static final int ATTACK = 52;
     private static final int DEFENSE = 18;
 
     private static final int EXP_REWARD = 300;
@@ -27,7 +27,7 @@ public class DarkMage extends Monster {
                 rollGold(220, 300),
                 true
         );
-        configureUltimate("Abyss Nova", 5, 25, 28);
+        configureUltimate("Abyss Nova", 5, 25, 40);
     }
 
     // Soul Shard drop chance from the design spreadsheet.
@@ -50,7 +50,7 @@ public class DarkMage extends Monster {
     }
 
     private static final int SPECIAL_SKILL_CHANCE = 20;
-    private static final int DARK_BARRIER_BONUS = 10;
+    private static final int DARK_BARRIER_BONUS = 22;
 
     private boolean darkBarrierActive = false;
 

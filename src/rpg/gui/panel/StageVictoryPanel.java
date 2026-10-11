@@ -128,7 +128,7 @@ public class StageVictoryPanel extends JPanel {
 
         JButton restart = button("RESTART CHALLENGE", false);
         JButton next = button(
-                hasNextStage ? "NEXT STAGE" : "VIEW ENDING",
+                hasNextStage ? "NEXT STAGE" : "RETURN TO HUB",
                 true
         );
 
@@ -147,7 +147,7 @@ public class StageVictoryPanel extends JPanel {
             if (hasNextStage) {
                 frame.prepareNextStage(stageIndex + 1);
             } else {
-                frame.viewEnding();
+                frame.showHub();
             }
         });
         
