@@ -517,18 +517,12 @@ public class BattleManager {
                 + goldReward
                 + " Gold.";
 
-        Item droppedItem =
-                monster.generateDrop();
-
-        if (droppedItem != null) {
-
-            player.getInventory()
-                    .addItem(droppedItem);
+        // One victory can award several kinds and multiple bottles of each.
+        // Store every copy in Inventory; the victory UI groups them by name.
+        for (Item droppedItem : monster.generateDrops()) {
+            player.getInventory().addItem(droppedItem);
             droppedItemNames.add(droppedItem.getName());
-
-            message += "\nItem dropped: "
-                    + droppedItem.getName()
-                    + "!";
+            message += "\nItem dropped: " + droppedItem.getName() + "!";
         }
 
         // Soul Shard is an independent bonus drop; potions may also drop.

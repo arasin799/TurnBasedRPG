@@ -59,6 +59,12 @@ public class Spider extends Monster {
         return null;
     }
 
+    // Additional rolls: small HP, big HP, small MP, big MP, second bottle.
+    @Override
+    protected java.util.List<Item> generateAdditionalDrops() {
+        return rollExtraPotions(50, 15, 45, 12, 22);
+    }
+
     private static final int SPECIAL_SKILL_CHANCE = 20;
     private static final int WEB_TRAP_BONUS = 6;
 

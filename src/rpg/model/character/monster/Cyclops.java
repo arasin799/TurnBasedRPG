@@ -70,6 +70,12 @@ public class Cyclops extends Monster {
     }
 
     
+    // Additional rolls: small HP, big HP, small MP, big MP, second bottle.
+    @Override
+    protected java.util.List<Item> generateAdditionalDrops() {
+        return rollExtraPotions(55, 45, 50, 45, 30);
+    }
+
     private static final int SPECIAL_SKILL_CHANCE = 25;
     private static final int HEAVY_SMASH_BONUS = 11;
     

@@ -70,6 +70,12 @@ public class Ghost extends Monster {
     }
 
     
+    // Additional rolls: small HP, big HP, small MP, big MP, second bottle.
+    @Override
+    protected java.util.List<Item> generateAdditionalDrops() {
+        return rollExtraPotions(45, 35, 50, 30, 25);
+    }
+
     private static final int SPECIAL_SKILL_CHANCE = 20;
     private static final int FADE_DAMAGE_BONUS = 8;
 

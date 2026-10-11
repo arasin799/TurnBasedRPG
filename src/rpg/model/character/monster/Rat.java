@@ -60,6 +60,12 @@ public class Rat extends Monster {
     }
 
     
+    // Additional rolls: small HP, big HP, small MP, big MP, second bottle.
+    @Override
+    protected java.util.List<Item> generateAdditionalDrops() {
+        return rollExtraPotions(50, 8, 40, 8, 20);
+    }
+
     private static final int SPECIAL_SKILL_CHANCE = 20;
     private static final int FRENZY_BITE_BONUS = 5;
 

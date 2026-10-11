@@ -13,6 +13,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -90,10 +92,24 @@ public class StageVictoryPanel extends JPanel {
             rewards.add(Box.createVerticalStrut(6));
             rewards.add(label(droppedItems.size() == 1
                     ? "ITEM OBTAINED" : "ITEMS OBTAINED", 10, GREEN));
-            rewards.add(Box.createVerticalStrut(2));
+            rewards.add(Box.createVerticalStrut(3));
+
+            // Group repeated drops so multiple bottles fit beside the trophy.
+            Map<String, Integer> counts = new LinkedHashMap<>();
             for (String itemName : droppedItems) {
-                rewards.add(label(itemName, 11, GameTheme.TEXT));
+                counts.put(itemName, counts.getOrDefault(itemName, 0) + 1);
             }
+            JPanel dropGrid = new JPanel(new GridLayout(0, 2, 10, 3));
+            dropGrid.setOpaque(false);
+            for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+                dropGrid.add(label(entry.getKey() + " x" + entry.getValue(),
+                        11, GameTheme.TEXT));
+            }
+            if (counts.size() % 2 == 1) {
+                dropGrid.add(new JLabel());
+            }
+            dropGrid.setAlignmentX(CENTER_ALIGNMENT);
+            rewards.add(dropGrid);
         }
 
         // Keep all victory content together, centered vertically in the space

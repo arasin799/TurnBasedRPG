@@ -2,7 +2,15 @@ package rpg.model.character.monster;
 
 import rpg.model.character.Character;
 import rpg.model.item.Item;
+import rpg.model.item.SmallHealthPotion;
+import rpg.model.item.HealthPotion;
+import rpg.model.item.SmallManaPotion;
+import rpg.model.item.ManaPotion;
 import rpg.model.character.player.Player;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 public abstract class Monster extends Character {
 
@@ -18,6 +26,44 @@ public abstract class Monster extends Character {
     private int ultimateCharge;
 
     public abstract Item generateDrop();
+
+    /** Keep the existing primary drop; roll additional kinds independently. */
+    public List<Item> generateDrops() {
+        List<Item> result = new ArrayList<>();
+        Item mainDrop = generateDrop();
+        if (mainDrop != null) {
+            result.add(mainDrop);
+        }
+        result.addAll(generateAdditionalDrops());
+        return result;
+    }
+
+    /** Subclasses adjust bonus drop chances without changing their old drops. */
+    protected List<Item> generateAdditionalDrops() {
+        return new ArrayList<>();
+    }
+
+    /** Each kind may drop independently, with a chance for a second bottle. */
+    protected final List<Item> rollExtraPotions(int smallHp, int bigHp,
+            int smallMp, int bigMp, int secondBottle) {
+        List<Item> result = new ArrayList<>();
+        addPotions(result, smallHp, secondBottle, SmallHealthPotion::new);
+        addPotions(result, bigHp, secondBottle, HealthPotion::new);
+        addPotions(result, smallMp, secondBottle, SmallManaPotion::new);
+        addPotions(result, bigMp, secondBottle, ManaPotion::new);
+        return result;
+    }
+
+    private static void addPotions(List<Item> items, int dropChance,
+            int secondBottleChance, Supplier<Item> factory) {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        if (random.nextInt(100) < dropChance) {
+            items.add(factory.get());
+            if (random.nextInt(100) < secondBottleChance) {
+                items.add(factory.get());
+            }
+        }
+    }
 
     public Monster(
             String name,

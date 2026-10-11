@@ -43,6 +43,12 @@ public class DarkMage extends Monster {
                 ? new HealthPotion() : new ManaPotion();
     }
 
+    // Additional rolls: small HP, big HP, small MP, big MP, second bottle.
+    @Override
+    protected java.util.List<Item> generateAdditionalDrops() {
+        return rollExtraPotions(65, 70, 65, 70, 35);
+    }
+
     private static final int SPECIAL_SKILL_CHANCE = 20;
     private static final int DARK_BARRIER_BONUS = 10;
 
