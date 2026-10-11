@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -229,9 +230,27 @@ public class InventoryPanel extends JPanel {
         Set<Class<?>> shownTypes = new HashSet<>();
         int totalItems = 0;
 
+        // Display the same order as Shop: weapons, armor, Potions, Bomb.
+        // Items not sold by the Shop (such as Soul Shard) appear last.
+        // Sort a COPY so the underlying Inventory and Save/Load order stay intact.
+        Map<String, Integer> shopOrder = new HashMap<>();
+        int rank = 0;
+        for (Item shopItem : game.getShop().getItemsForSale()) {
+            shopOrder.putIfAbsent(shopItem.getName(), rank++);
+        }
+        ArrayList<Item> sortedItems = game.getPlayer().getInventory().getItems();
+        sortedItems.sort((first, second) -> {
+            int firstRank = shopOrder.getOrDefault(first.getName(), Integer.MAX_VALUE);
+            int secondRank = shopOrder.getOrDefault(second.getName(), Integer.MAX_VALUE);
+            if (firstRank != secondRank) {
+                return Integer.compare(firstRank, secondRank);
+            }
+            return first.getName().compareToIgnoreCase(second.getName());
+        });
+
         // First item of each consumable class represents the whole stack.
         // Equipment always has its own row, even if the names are identical.
-        for (Item item : game.getPlayer().getInventory().getItems()) {
+        for (Item item : sortedItems) {
             totalItems++;
             if (isStackableForUi(item)) {
                 Class<?> type = item.getClass();
