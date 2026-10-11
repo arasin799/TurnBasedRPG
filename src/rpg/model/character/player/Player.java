@@ -1,6 +1,9 @@
 package rpg.model.character.player;
 
+import java.util.ArrayList;
+
 import rpg.model.Inventory;
+import rpg.model.item.Item;
 import rpg.model.character.Character;
 import rpg.model.item.Weapon;
 import rpg.model.item.WeaponType;
@@ -31,8 +34,9 @@ public abstract class Player extends Character {
     // Reduces one actual incoming hit, including monster Skills and Ultimates.
     private int nextHitReductionPercent;
 
-    private Weapon equippedWeapon;
-    private Armor equippedArmor;
+    // One piece per equipment type, with bonuses stacking across different types.
+    private final ArrayList<Weapon> equippedWeapons = new ArrayList<>();
+    private final ArrayList<Armor> equippedArmors = new ArrayList<>();
 
     private Inventory inventory;
 
@@ -48,9 +52,6 @@ public abstract class Player extends Character {
         this.level = 1;
         this.experience = 0;
         this.gold = 100;
-
-        this.equippedWeapon = null;
-        this.equippedArmor = null;
 
         this.inventory = new Inventory();
     }
@@ -114,78 +115,90 @@ public abstract class Player extends Character {
                 getAttack(), getUltimateDamageBonus() + getEquippedClassWeaponDamageBonus());
     }
 
-    public Weapon getEquippedWeapon() {
-        return equippedWeapon;
+    public ArrayList<Weapon> getEquippedWeapons() {
+        return new ArrayList<>(equippedWeapons);
     }
 
+    public ArrayList<Armor> getEquippedArmors() {
+        return new ArrayList<>(equippedArmors);
+    }
+
+    /** Backward-compatible accessor; new code should use getEquippedWeapons(). */
+    public Weapon getEquippedWeapon() {
+        return equippedWeapons.isEmpty() ? null : equippedWeapons.get(0);
+    }
+
+    /** Backward-compatible accessor; new code should use getEquippedArmors(). */
     public Armor getEquippedArmor() {
-        return equippedArmor;
+        return equippedArmors.isEmpty() ? null : equippedArmors.get(0);
+    }
+
+    public boolean isEquipped(Item item) {
+        return item != null && (equippedWeapons.contains(item) || equippedArmors.contains(item));
     }
 
     public Inventory getInventory() {
         return inventory;
     }
 
-    // -------------------------
-    // Equipment
-    // -------------------------
-
-    public boolean equipWeapon(
-            Weapon weapon) {
-
-        if (weapon == null) {
-            return false;
+    // Each weapon/armor type is one slot; different types can be equipped together.
+    public boolean equipWeapon(Weapon weapon) {
+        if (weapon == null || !canEquipWeapon(weapon)) return false;
+        for (Weapon equipped : equippedWeapons) {
+            if (equipped.getWeaponType() == weapon.getWeaponType()) return false;
         }
-
-        if (!canEquipWeapon(weapon)) {
-            return false;
-        }
-
-        this.equippedWeapon = weapon;
-
-        return true;
+        return equippedWeapons.add(weapon);
     }
 
-    public abstract boolean canEquipWeapon(
-        Weapon weapon);
+    public abstract boolean canEquipWeapon(Weapon weapon);
 
-    public boolean equipArmor(
-        Armor armor) {
-
-        if (armor == null) {
-            return false;
+    public boolean equipArmor(Armor armor) {
+        if (armor == null || !canEquipArmor(armor)) return false;
+        for (Armor equipped : equippedArmors) {
+            if (equipped.getArmorType() == armor.getArmorType()) return false;
         }
-
-        if (!canEquipArmor(armor)) {
-            return false;
-        }
-
-        this.equippedArmor = armor;
-
-        return true;
+        return equippedArmors.add(armor);
     }
 
-    public abstract boolean canEquipArmor(
-        Armor armor);
+    public abstract boolean canEquipArmor(Armor armor);
 
+    public boolean unequipWeapon(Weapon weapon) {
+        return equippedWeapons.remove(weapon);
+    }
+
+    public boolean unequipArmor(Armor armor) {
+        return equippedArmors.remove(armor);
+    }
+
+    /** Legacy bulk unequip methods. */
     public void unequipWeapon() {
-        this.equippedWeapon = null;
+        equippedWeapons.clear();
     }
 
     public void unequipArmor() {
-        this.equippedArmor = null;
+        equippedArmors.clear();
+    }
+
+    public int getTotalEquippedWeaponAttackBonus() {
+        int total = 0;
+        for (Weapon weapon : equippedWeapons) {
+            total += getWeaponAttackBonus(weapon);
+        }
+        return total;
+    }
+
+    public int getTotalEquippedArmorDefenseBonus() {
+        int total = 0;
+        for (Armor armor : equippedArmors) {
+            total += armor.getDefenseBonus();
+        }
+        return total;
     }
 
     @Override
     public int getAttack() {
 
-        int totalAttack = super.getAttack();
-
-        if (equippedWeapon != null) {
-            totalAttack += getWeaponAttackBonus(equippedWeapon);
-        }
-
-        return totalAttack;
+        return super.getAttack() + getTotalEquippedWeaponAttackBonus();
     }
 
     /** Extra TRUE damage for the weapon dedicated to this hero class.
@@ -201,7 +214,7 @@ public abstract class Player extends Character {
         return matches ? CLASS_WEAPON_EXTRA_DAMAGE : 0;
     }
 
-    /** Effective attack from one equipped weapon; no weapon stacking. */
+    /** Effective attack bonus for one equipped weapon. */
     public int getWeaponAttackBonus(Weapon weapon) {
         if (weapon == null) return 0;
         // Dagger is a universal starter weapon (+5 ATK as before).
@@ -214,7 +227,13 @@ public abstract class Player extends Character {
     }
 
     public int getEquippedClassWeaponDamageBonus() {
-        return getClassWeaponDamageBonus(equippedWeapon);
+        // The one matching class weapon grants +7 true damage once.
+        for (Weapon weapon : equippedWeapons) {
+            if (getClassWeaponDamageBonus(weapon) > 0) {
+                return CLASS_WEAPON_EXTRA_DAMAGE;
+            }
+        }
+        return 0;
     }
 
     /** The class weapon adds +7 damage AFTER normal defense calculation. */
@@ -231,13 +250,7 @@ public abstract class Player extends Character {
     @Override
     public int getDefense() {
 
-        int totalDefense = super.getDefense();
-
-        if (equippedArmor != null) {
-            totalDefense += equippedArmor.getDefenseBonus();
-        }
-
-        return totalDefense;
+        return super.getDefense() + getTotalEquippedArmorDefenseBonus();
     }
 
     /** A simple extensible hook: each hero class chooses its own effects. */

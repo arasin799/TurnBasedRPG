@@ -76,12 +76,6 @@ public class SaveManager {
         ArrayList<Item> items =
                 player.getInventory().getItems();
 
-        int weaponIndex =
-                findWeaponIndex(player, items);
-
-        int armorIndex =
-                findArmorIndex(player, items);
-
         try (BufferedWriter writer =
                      new BufferedWriter(
                              new FileWriter(file))) {
@@ -133,16 +127,12 @@ public class SaveManager {
             );
             writer.newLine();
 
-            writer.write(
-                    "EQUIPPED_WEAPON_INDEX="
-                            + weaponIndex
-            );
+            writer.write("EQUIPPED_WEAPON_INDICES="
+                    + findEquippedIndices(items, player.getEquippedWeapons()));
             writer.newLine();
 
-            writer.write(
-                    "EQUIPPED_ARMOR_INDEX="
-                            + armorIndex
-            );
+            writer.write("EQUIPPED_ARMOR_INDICES="
+                    + findEquippedIndices(items, player.getEquippedArmors()));
             writer.newLine();
 
             for (Item item : items) {
@@ -183,8 +173,11 @@ public class SaveManager {
         Integer stage = null;
         int ultimateCharge = 0; // Older save files have no Ultimate charge.
 
+        // Old save files use one index per category; new saves store comma-separated lists.
         int weaponIndex = -1;
         int armorIndex = -1;
+        String weaponIndices = null;
+        String armorIndices = null;
 
         ArrayList<String> itemData =
                 new ArrayList<>();
@@ -286,6 +279,14 @@ public class SaveManager {
                                 );
                         break;
 
+                    case "EQUIPPED_WEAPON_INDICES":
+                        weaponIndices = value;
+                        break;
+
+                    case "EQUIPPED_ARMOR_INDICES":
+                        armorIndices = value;
+                        break;
+
                     case "EQUIPPED_WEAPON_INDEX":
                         weaponIndex =
                                 parseInteger(
@@ -371,17 +372,17 @@ public class SaveManager {
                 player.getInventory()
                         .getItems();
 
-        restoreWeapon(
-                player,
-                loadedItems,
-                weaponIndex
-        );
+        if (weaponIndices != null) {
+            restoreEquipmentIndices(player, loadedItems, weaponIndices, true);
+        } else {
+            restoreWeapon(player, loadedItems, weaponIndex); // Pre-51.8.4 saves.
+        }
 
-        restoreArmor(
-                player,
-                loadedItems,
-                armorIndex
-        );
+        if (armorIndices != null) {
+            restoreEquipmentIndices(player, loadedItems, armorIndices, false);
+        } else {
+            restoreArmor(player, loadedItems, armorIndex); // Pre-51.8.4 saves.
+        }
 
         return new GameData(
                 player,
@@ -675,131 +676,65 @@ public class SaveManager {
     }
 
     // -------------------------
-    // Equipment Save
+    // Equipment save/load
     // -------------------------
 
-    private static int findWeaponIndex(
-            Player player,
-            ArrayList<Item> items) {
-
-        for (int i = 0;
-             i < items.size();
-             i++) {
-
-            if (items.get(i)
-                    == player.getEquippedWeapon()) {
-
-                return i;
+    private static String findEquippedIndices(ArrayList<Item> items,
+            java.util.List<? extends Item> equippedItems) {
+        StringBuilder indices = new StringBuilder();
+        for (int i = 0; i < items.size(); i++) {
+            if (equippedItems.contains(items.get(i))) {
+                if (indices.length() > 0) indices.append(",");
+                indices.append(i);
             }
         }
-
-        return -1;
+        return indices.toString();
     }
 
-    private static int findArmorIndex(
-            Player player,
-            ArrayList<Item> items) {
-
-        for (int i = 0;
-             i < items.size();
-             i++) {
-
-            if (items.get(i)
-                    == player.getEquippedArmor()) {
-
-                return i;
+    /** New comma-separated equipment indices, with strict validation. */
+    private static void restoreEquipmentIndices(Player player, ArrayList<Item> items,
+            String indices, boolean weapon) throws InvalidSaveException {
+        if (indices.isEmpty()) return; // Nothing equipped.
+        java.util.HashSet<Integer> seen = new java.util.HashSet<>();
+        for (String raw : indices.split(",", -1)) {
+            int index = parseInteger(raw.trim(), "equipped item index");
+            if (!seen.add(index)) {
+                throw new InvalidSaveException("Duplicate equipped item index: " + index);
+            }
+            if (weapon) {
+                restoreWeapon(player, items, index);
+            } else {
+                restoreArmor(player, items, index);
             }
         }
+    }
 
-        return -1;
+    /** Also used when loading legacy saves with a single equipment index. */
+    private static void restoreWeapon(Player player, ArrayList<Item> items, int index)
+            throws InvalidSaveException {
+        if (index == -1) return;
+        if (index < 0 || index >= items.size() || !(items.get(index) instanceof Weapon)) {
+            throw new InvalidSaveException("Invalid equipped weapon index.");
+        }
+        Weapon weapon = (Weapon) items.get(index);
+        if (!player.equipWeapon(weapon)) {
+            throw new InvalidSaveException("Cannot equip saved weapon: " + weapon.getName());
+        }
+    }
+
+    private static void restoreArmor(Player player, ArrayList<Item> items, int index)
+            throws InvalidSaveException {
+        if (index == -1) return;
+        if (index < 0 || index >= items.size() || !(items.get(index) instanceof Armor)) {
+            throw new InvalidSaveException("Invalid equipped armor index.");
+        }
+        Armor armor = (Armor) items.get(index);
+        if (!player.equipArmor(armor)) {
+            throw new InvalidSaveException("Cannot equip saved armor: " + armor.getName());
+        }
     }
 
     // -------------------------
-    // Equipment Load
-    // -------------------------
-
-    private static void restoreWeapon(
-            Player player,
-            ArrayList<Item> items,
-            int index)
-            throws InvalidSaveException {
-
-        if (index == -1) {
-            return;
-        }
-
-        if (index < 0
-                || index >= items.size()) {
-
-            throw new InvalidSaveException(
-                    "Invalid equipped weapon index."
-            );
-        }
-
-        Item item = items.get(index);
-
-        if (!(item instanceof Weapon)) {
-
-            throw new InvalidSaveException(
-                    "Equipped weapon is not a Weapon."
-            );
-        }
-
-        boolean equipped =
-                player.equipWeapon(
-                        (Weapon) item
-                );
-
-        if (!equipped) {
-
-            throw new InvalidSaveException(
-                    "Player cannot equip saved weapon: "
-                            + item.getName()
-            );
-        }
-    }
-
-    private static void restoreArmor(
-            Player player,
-            ArrayList<Item> items,
-            int index)
-            throws InvalidSaveException {
-
-        if (index == -1) {
-            return;
-        }
-
-        if (index < 0
-                || index >= items.size()) {
-
-            throw new InvalidSaveException(
-                    "Invalid equipped armor index."
-            );
-        }
-
-        Item item = items.get(index);
-
-        if (!(item instanceof Armor)) {
-
-            throw new InvalidSaveException(
-                    "Equipped armor is not Armor."
-            );
-        }
-
-        boolean equipped =
-                player.equipArmor(
-                        (Armor) item
-                );
-
-        if (!equipped) {
-
-            throw new InvalidSaveException(
-                    "Player cannot equip saved armor: "
-                            + item.getName()
-            );
-        }
-    }
-
     // -------------------------
     // Parsing
     // -------------------------

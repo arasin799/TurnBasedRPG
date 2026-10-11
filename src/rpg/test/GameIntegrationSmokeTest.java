@@ -99,27 +99,49 @@ public final class GameIntegrationSmokeTest {
 
     private static void testEquipment() {
         Shop shop = new Shop();
-        String[] expectedClasses = {"Knight", "Archer", "Mage"};
-        String[] ownedWeapons = {"Long Sword", "Bow", "Magic Staff"};
-        for (int i = 0; i < expectedClasses.length; i++) {
-            Player p = createPlayer(expectedClasses[i]);
+        String[] classes = {"Knight", "Archer", "Mage"};
+        String[] classWeapons = {"Long Sword", "Bow", "Magic Staff"};
+        for (int i = 0; i < classes.length; i++) {
+            Player p = createPlayer(classes[i]);
             int baseAttack = p.getAttack();
-            p.gainGold(1000);
-            Weapon matched = (Weapon) storeItem(shop, ownedWeapons[i]);
-            Weapon mismatched = (Weapon) storeItem(shop, ownedWeapons[(i + 1) % 3]);
-            Armor ironShield = (Armor) storeItem(shop, "Iron Shield");
-            require(p.equipWeapon(matched), "matching weapon equip rejected");
-            require(p.getAttack() == baseAttack + 10, "matching weapon ATK should be +10");
+            int baseDefense = p.getDefense();
+            Weapon matched = (Weapon) storeItem(shop, classWeapons[i]);
+            Weapon dagger = (Weapon) storeItem(shop, "Dagger");
+            Weapon bow = (Weapon) storeItem(shop, "Bow");
+            Weapon staff = (Weapon) storeItem(shop, "Magic Staff");
+            Weapon sword = (Weapon) storeItem(shop, "Long Sword");
+            Armor wooden = (Armor) storeItem(shop, "Wooden Shield");
+            Armor iron = (Armor) storeItem(shop, "Iron Shield");
+
+            for (Weapon weapon : new Weapon[] {sword, bow, staff, dagger}) {
+                require(p.equipWeapon(weapon), "could not stack distinct weapon types");
+            }
+            require(p.getEquippedWeapons().size() == 4, "four weapons should be equipped");
+            require(p.getAttack() == baseAttack + 29, "stacked weapons should grant +29 ATK");
             require(p.getEquippedClassWeaponDamageBonus() == 7,
-                    "matching weapon extra damage should be +7");
-            require(p.equipWeapon(mismatched), "off-class weapon equip rejected");
-            require(p.getAttack() == baseAttack + 7, "off-class weapon ATK should be +7");
+                    "only the matching weapon should grant +7 extra damage");
+            require(!p.equipWeapon(matched), "same weapon type equipped twice");
+            require(p.getAttack() == baseAttack + 29, "duplicate equip changed ATK");
+
+            require(p.equipArmor(wooden) && p.equipArmor(iron),
+                    "two different shield types should stack");
+            require(p.getDefense() == baseDefense + 19, "shields should grant +19 DEF");
+            require(!p.equipArmor(iron), "same shield type equipped twice");
+            require(p.unequipArmor(wooden), "could not unequip Wooden Shield only");
+            require(p.getDefense() == baseDefense + 12, "Iron Shield was not kept");
+            require(p.unequipWeapon(dagger), "could not unequip Dagger only");
+            require(p.getAttack() == baseAttack + 24, "Dagger's +5 ATK was not removed");
+            require(p.getEquippedClassWeaponDamageBonus() == 7,
+                    "removing Dagger incorrectly removed class extra damage");
+            require(p.unequipWeapon(matched), "could not unequip matching weapon");
             require(p.getEquippedClassWeaponDamageBonus() == 0,
-                    "off-class weapon must not give extra damage");
-            require(p.equipArmor(ironShield), "Iron Shield should work for every class");
-            require(p.getDefense() >= ironShield.getDefenseBonus(), "armor DEF not applied");
+                    "class bonus remained after removing class weapon");
+            require(p.getAttack() == baseAttack + 14,
+                    "off-class weapons should each contribute +7 ATK");
             p.unequipWeapon();
-            require(p.getAttack() == baseAttack, "ATK not restored on unequip");
+            p.unequipArmor();
+            require(p.getAttack() == baseAttack && p.getDefense() == baseDefense,
+                    "bulk unequip should reset all equipment bonuses");
         }
     }
 
@@ -196,17 +218,22 @@ public final class GameIntegrationSmokeTest {
         File temporarySave = Files.createTempFile("heros-journey-integration-", ".txt").toFile();
         try {
             Knight p = new Knight("Save Tester");
-            p.gainGold(1000);
+            p.gainGold(3000);
             Shop shop = new Shop();
-            shop.buyItem(p, storeItem(shop, "Long Sword"));
-            shop.buyItem(p, storeItem(shop, "Iron Shield"));
-            Weapon weapon = ownedWeapon(p, "Long Sword");
-            Armor armor = null;
-            for (Item item : p.getInventory().getItems()) {
-                if (item instanceof Armor) armor = (Armor) item;
+            String[] equipmentNames = {"Long Sword", "Bow", "Magic Staff", "Dagger",
+                    "Wooden Shield", "Iron Shield"};
+            for (String name : equipmentNames) {
+                shop.buyItem(p, storeItem(shop, name));
             }
-            require(weapon != null && armor != null, "test equipment purchase failed");
-            require(p.equipWeapon(weapon) && p.equipArmor(armor), "test equipment equip failed");
+            for (Item item : p.getInventory().getItems()) {
+                if (item instanceof Weapon) {
+                    require(p.equipWeapon((Weapon) item), "could not equip saved weapon");
+                } else if (item instanceof Armor) {
+                    require(p.equipArmor((Armor) item), "could not equip saved armor");
+                }
+            }
+            require(p.getEquippedWeapons().size() == 4 && p.getEquippedArmors().size() == 2,
+                    "save setup missing stacked equipment");
             p.getInventory().addItem(new SoulShard());
             p.restoreUltimateCharge(3);
             p.takeDamage(40);
@@ -224,13 +251,26 @@ public final class GameIntegrationSmokeTest {
             require(q.getGold() == gold, "Gold lost in save/load");
             require(q.getUltimateCharge() == 3, "Ultimate charge lost in save/load");
             require(q.getInventory().getItemCount() == items, "inventory count lost");
-            require(q.getEquippedWeapon() != null && q.getEquippedArmor() != null,
-                    "equipped item lost in save/load");
+            require(q.getEquippedWeapons().size() == 4 && q.getEquippedArmors().size() == 2,
+                    "stacked equipped items lost in save/load");
             require(q.getAttack() == atk && q.getDefense() == def,
                     "equipment stats changed after save/load");
             boolean shardRestored = q.getInventory().getItems().stream()
                     .anyMatch(item -> item instanceof SoulShard);
             require(shardRestored, "Soul Shard lost in save/load");
+
+            // Legacy saves had a single weapon and armor index. They must still load.
+            String saved = Files.readString(temporarySave.toPath());
+            String legacy = saved.replaceAll("(?m)^EQUIPPED_WEAPON_INDICES=.*$",
+                    "EQUIPPED_WEAPON_INDEX=0")
+                    .replaceAll("(?m)^EQUIPPED_ARMOR_INDICES=.*$",
+                    "EQUIPPED_ARMOR_INDEX=4");
+            Files.writeString(temporarySave.toPath(), legacy);
+            Player oldSavePlayer = SaveManager.loadGame(temporarySave.getAbsolutePath()).getPlayer();
+            require(oldSavePlayer.getEquippedWeapons().size() == 1,
+                    "legacy weapon index did not load");
+            require(oldSavePlayer.getEquippedArmors().size() == 1,
+                    "legacy armor index did not load");
         } finally {
             Files.deleteIfExists(temporarySave.toPath());
         }

@@ -360,10 +360,10 @@ public class InventoryPanel extends JPanel {
 
         if (item instanceof Weapon) {
             equipButton.setEnabled(true);
-            equipButton.setText(item == player.getEquippedWeapon() ? "UNEQUIP" : "EQUIP");
+            equipButton.setText(player.isEquipped(item) ? "UNEQUIP" : "EQUIP");
         } else if (item instanceof Armor) {
             equipButton.setEnabled(true);
-            equipButton.setText(item == player.getEquippedArmor() ? "UNEQUIP" : "EQUIP");
+            equipButton.setText(player.isEquipped(item) ? "UNEQUIP" : "EQUIP");
         } else {
             equipButton.setEnabled(false);
             equipButton.setText("EQUIP");
@@ -403,18 +403,18 @@ public class InventoryPanel extends JPanel {
         String message = null;
         if (item instanceof Weapon) {
             Weapon weapon = (Weapon) item;
-            if (weapon == player.getEquippedWeapon()) {
-                player.unequipWeapon();
+            if (player.isEquipped(weapon)) {
+                player.unequipWeapon(weapon);
                 message = weapon.getName() + " unequipped.";
             } else if (player.equipWeapon(weapon)) {
-                int extra = player.getEquippedClassWeaponDamageBonus();
+                int extra = player.getClassWeaponDamageBonus(weapon);
                 message = weapon.getName() + " equipped."
                         + (extra > 0 ? "\nClass weapon bonus: +" + extra + " Extra Damage!" : "");
             }
         } else if (item instanceof Armor) {
             Armor armor = (Armor) item;
-            if (armor == player.getEquippedArmor()) {
-                player.unequipArmor();
+            if (player.isEquipped(armor)) {
+                player.unequipArmor(armor);
                 message = armor.getName() + " unequipped.";
             } else if (player.equipArmor(armor)) {
                 message = armor.getName() + " equipped.";
@@ -435,14 +435,40 @@ public class InventoryPanel extends JPanel {
 
     private void updateEquipmentInfo() {
         Player player = game.getPlayer();
-        Weapon weapon = player.getEquippedWeapon();
-        Armor armor = player.getEquippedArmor();
-        weaponLabel.setText(weapon == null ? "WEAPON: NONE"
-                : "WEAPON: " + weapon.getName() + "  (+" + player.getWeaponAttackBonus(weapon)
-                + " ATK" + (player.getEquippedClassWeaponDamageBonus() > 0
-                ? ", +7 DMG" : "") + ")");
-        armorLabel.setText(armor == null ? "ARMOR: NONE"
-                : "ARMOR: " + armor.getName() + "  (+" + armor.getDefenseBonus() + " DEF)");
+        ArrayList<Weapon> weapons = player.getEquippedWeapons();
+        ArrayList<Armor> armors = player.getEquippedArmors();
+
+        if (weapons.isEmpty()) {
+            weaponLabel.setText("WEAPONS: NONE");
+            weaponLabel.setToolTipText(null);
+        } else {
+            StringBuilder names = new StringBuilder();
+            for (Weapon weapon : weapons) {
+                if (names.length() > 0) names.append(", ");
+                names.append(weapon.getName());
+            }
+            weaponLabel.setText("<html>WEAPONS: " + names
+                    + "<br>+" + player.getTotalEquippedWeaponAttackBonus() + " ATK"
+                    + (player.getEquippedClassWeaponDamageBonus() > 0
+                    ? ", +" + player.getEquippedClassWeaponDamageBonus() + " EXTRA DMG" : "")
+                    + "</html>");
+            weaponLabel.setToolTipText(names.toString());
+        }
+
+        if (armors.isEmpty()) {
+            armorLabel.setText("ARMOR: NONE");
+            armorLabel.setToolTipText(null);
+        } else {
+            StringBuilder names = new StringBuilder();
+            for (Armor armor : armors) {
+                if (names.length() > 0) names.append(", ");
+                names.append(armor.getName());
+            }
+            armorLabel.setText("<html>ARMOR: " + names + "<br>+"
+                    + player.getTotalEquippedArmorDefenseBonus() + " DEF</html>");
+            armorLabel.setToolTipText(names.toString());
+        }
+
         ultimateLabel.setText("ULTIMATE CHARGE: " + player.getUltimateCharge()
                 + "/" + player.getMaxUltimateCharge());
     }
@@ -522,8 +548,7 @@ public class InventoryPanel extends JPanel {
         public Component getListCellRendererComponent(JList<? extends Item> list,
                 Item value, int index, boolean isSelected, boolean cellHasFocus) {
             Player player = game.getPlayer();
-            boolean equipped = value == player.getEquippedWeapon()
-                    || value == player.getEquippedArmor();
+            boolean equipped = player.isEquipped(value);
             setBackground(isSelected ? HIGHLIGHT : INNER);
             int stackCount = getDisplayStackCount(value);
             itemName.setText(value.getName()

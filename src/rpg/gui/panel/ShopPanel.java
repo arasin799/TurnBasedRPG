@@ -329,7 +329,7 @@ public class ShopPanel extends JPanel {
             info.append("\nBUY: ").append(item.getBuyPrice())
                     .append(" GOLD     SELL: ").append(item.getSellPrice()).append(" GOLD");
         }
-        if (!buying && (item == player.getEquippedWeapon() || item == player.getEquippedArmor())) {
+        if (!buying && player.isEquipped(item)) {
             info.append("\nUNEQUIP IN INVENTORY BEFORE SELLING");
         }
         itemInfoArea.setText(info.toString());
@@ -344,8 +344,7 @@ public class ShopPanel extends JPanel {
                 && player.getGold() >= item.getBuyPrice());
         sellButton.setEnabled(!buying && item.getSellPrice() > 0
                 && !(item instanceof SoulShard)
-                && item != player.getEquippedWeapon()
-                && item != player.getEquippedArmor());
+                && !player.isEquipped(item));
     }
 
     private String category(Item item) {
@@ -385,7 +384,7 @@ public class ShopPanel extends JPanel {
                     "Cannot Sell", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (item == player.getEquippedWeapon() || item == player.getEquippedArmor()) {
+        if (player.isEquipped(item)) {
             JOptionPane.showMessageDialog(this,
                     "Unequip this item in Inventory before selling.",
                     "Cannot Sell", JOptionPane.WARNING_MESSAGE);
@@ -482,8 +481,7 @@ public class ShopPanel extends JPanel {
             setBackground(isSelected ? HIGHLIGHT : INNER);
             nameLabel.setText(value.getName());
             nameLabel.setForeground(isSelected ? GameTheme.GOLD : GameTheme.TEXT);
-            boolean equipped = value == game.getPlayer().getEquippedWeapon()
-                    || value == game.getPlayer().getEquippedArmor();
+            boolean equipped = game.getPlayer().isEquipped(value);
             if (buying) {
                 boolean owned = value instanceof Weapon
                         && shop.alreadyOwnsWeapon(game.getPlayer(), (Weapon) value);

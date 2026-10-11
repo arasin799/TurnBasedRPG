@@ -205,8 +205,7 @@ public class Shop {
         }
 
         // Equipped items cannot be sold.
-        if (item == player.getEquippedWeapon()
-                || item == player.getEquippedArmor()) {
+        if (player.isEquipped(item)) {
 
             return false;
         }
