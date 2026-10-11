@@ -99,17 +99,18 @@ public class StageVictoryPanel extends JPanel {
             for (String itemName : droppedItems) {
                 counts.put(itemName, counts.getOrDefault(itemName, 0) + 1);
             }
-            JPanel dropGrid = new JPanel(new GridLayout(0, 2, 10, 3));
-            dropGrid.setOpaque(false);
+            // Use full-width centered rows instead of two columns.
+            // A single drop must be centered in the entire reward panel,
+            // not in the left half of a two-column GridLayout.
+            JPanel dropList = new JPanel(new GridLayout(0, 1, 0, 3));
+            dropList.setOpaque(false);
+            dropList.setAlignmentX(CENTER_ALIGNMENT);
+            dropList.setMaximumSize(new Dimension(460, 125));
             for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-                dropGrid.add(label(entry.getKey() + " x" + entry.getValue(),
+                dropList.add(label(entry.getKey() + " x" + entry.getValue(),
                         11, GameTheme.TEXT));
             }
-            if (counts.size() % 2 == 1) {
-                dropGrid.add(new JLabel());
-            }
-            dropGrid.setAlignmentX(CENTER_ALIGNMENT);
-            rewards.add(dropGrid);
+            rewards.add(dropList);
         }
 
         // Keep all victory content together, centered vertically in the space
