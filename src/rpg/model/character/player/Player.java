@@ -17,6 +17,12 @@ public abstract class Player extends Character {
     private static final int CLASS_WEAPON_EXTRA_DAMAGE = 7;
     private static final int CLASS_WEAPON_ATTACK_BONUS = 10;
     private static final int OFF_CLASS_WEAPON_ATTACK_BONUS = 7;
+
+    // Experience curve and extra Gold paid only for actual level-ups.
+    private static final int FIRST_LEVEL_EXP = 80;
+    private static final int EXP_GROWTH_PER_LEVEL = 70;
+    private static final int LEVEL_UP_GOLD_BASE = 50;
+    private static final int LEVEL_UP_GOLD_PER_LEVEL = 25;
     private int ultimateCharge = 0;
 
     private Weapon equippedWeapon;
@@ -230,7 +236,7 @@ public abstract class Player extends Character {
     // -------------------------
 
     public int getExpToNextLevel() {
-        return level * 100;
+        return FIRST_LEVEL_EXP + (level - 1) * EXP_GROWTH_PER_LEVEL;
     }
 
     public void gainExperience(int amount) {
@@ -257,9 +263,13 @@ public abstract class Player extends Character {
         // Increase stats based on player class
         applyLevelUpStats();
 
-        // Fully restore HP and MP
+        // Fully restore HP and MP.
         heal(getMaxHp());
         restoreMp(getMaxMp());
+
+        // Level 2 gets +100 Gold, Level 3 +125, Level 4 +150, ...
+        // restorePlayerState does not call levelUp(), so loading grants no Gold.
+        gainGold(LEVEL_UP_GOLD_BASE + level * LEVEL_UP_GOLD_PER_LEVEL);
     }
 
     protected abstract void applyLevelUpStats();

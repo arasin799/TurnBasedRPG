@@ -18,6 +18,7 @@ public class BattleManager {
     private boolean battleOver;
     private boolean escaped;
     private boolean rewardGiven;
+    private int levelUpGoldEarned;
     private final Random random = new Random();
     private int playerStunTurns = 0;
     // Rewards actually granted by this encounter (no additional drop rolls).
@@ -68,6 +69,11 @@ public class BattleManager {
     /** Item names awarded on victory. Returns a copy to protect battle state. */
     public List<String> getDroppedItemNames() {
         return new ArrayList<>(droppedItemNames);
+    }
+
+    /** Gold from level-ups in this battle, separate from the monster reward. */
+    public int getLevelUpGoldEarned() {
+        return levelUpGoldEarned;
     }
 
     // -------------------------
@@ -494,7 +500,9 @@ public class BattleManager {
         int goldReward = monster.getGoldReward();
         
 
+        int goldBeforeExperience = player.getGold();
         player.gainExperience(expReward);
+        levelUpGoldEarned = player.getGold() - goldBeforeExperience;
         player.gainGold(goldReward);
 
         rewardGiven = true;
@@ -536,7 +544,8 @@ public class BattleManager {
 
             message += "\nLevel Up! Level "
                     + player.getLevel()
-                    + ".";
+                    + "."
+                    + "\nLevel Up Bonus: +" + levelUpGoldEarned + " Gold.";
         }
 
         return message;

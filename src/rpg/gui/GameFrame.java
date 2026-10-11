@@ -102,10 +102,10 @@ public class GameFrame extends JFrame {
                 JFrame.EXIT_ON_CLOSE
         );
 
-        setSize(750, 520);
+        setSize(750, 560);
 
         setMinimumSize(
-                new Dimension(750, 520)
+                new Dimension(750, 560)
         );
 
         setLocationRelativeTo(null);
@@ -501,7 +501,9 @@ public class GameFrame extends JFrame {
         boolean defeat = battle.isDefeat();
         String monsterName = battle.getMonster().getName();
         int expReward = battle.getMonster().getExpReward();
-        int goldReward = battle.getMonster().getGoldReward();
+        // Show the actual total, including Gold awarded for leveling up.
+        int goldReward = battle.getMonster().getGoldReward()
+                + battle.getLevelUpGoldEarned();
         List<String> droppedItems = battle.getDroppedItemNames();
 
         game.finishBattle();
