@@ -180,8 +180,8 @@ public class BattlePanel extends JPanel {
         defendButton.setToolTipText("Reduce the next enemy hit by 65% (minimum 1 damage).");
         actions.add(attackButton);
         actions.add(skillButton);
-        actions.add(ultimateButton);
         actions.add(defendButton);
+        actions.add(ultimateButton);
         actions.add(itemButton);
         actions.add(escapeButton);
         add(actions, BorderLayout.SOUTH);
