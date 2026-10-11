@@ -85,8 +85,18 @@ public final class GameIntegrationSmokeTest {
         require(replay.isVictory(), "replayed Rat was not defeated");
         require(game.finishBattle(), "replayed battle did not finish");
         require(game.getStage() == 1, "replay changed unlocked progress");
-        require(p.getGold() == goldAfter + replay.getMonster().getGoldReward(),
-                "replay did not grant Gold once");
+        // A replay may also trigger Level Up (Rat gives 40 EXP; two wins reach 80).
+        // The game's level-up bonus is separate from the monster's Gold reward.
+        int expectedReplayGold = goldAfter + replay.getMonster().getGoldReward()
+                + replay.getLevelUpGoldEarned();
+        require(p.getGold() == expectedReplayGold,
+                "replay Gold should include monster reward and Level Up bonus");
+
+        // Finishing a battle must never pay its rewards a second time.
+        int goldAfterReplay = p.getGold();
+        replay.playerAttack();
+        require(p.getGold() == goldAfterReplay,
+                "replay granted duplicate Gold after battle over");
     }
 
     private static void completeRat(BattleManager battle) {
