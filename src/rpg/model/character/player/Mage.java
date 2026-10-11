@@ -40,6 +40,16 @@ public class Mage extends Player {
     }
 
     @Override
+    public CombatEffect getSkillCombatEffect() {
+        return CombatEffect.BURN;
+    }
+
+    @Override
+    public CombatEffect getUltimateCombatEffect() {
+        return CombatEffect.WARD;
+    }
+
+    @Override
     public String getSkillName() {
         return "Fireball";
     }

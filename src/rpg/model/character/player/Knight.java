@@ -39,6 +39,16 @@ public class Knight extends Player {
     }
 
     @Override
+    public CombatEffect getSkillCombatEffect() {
+        return CombatEffect.FORTIFY;
+    }
+
+    @Override
+    public CombatEffect getUltimateCombatEffect() {
+        return CombatEffect.FORTIFY;
+    }
+
+    @Override
     public String getSkillName() {
         return "Power Strike";
     }

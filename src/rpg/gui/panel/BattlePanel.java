@@ -57,6 +57,7 @@ public class BattlePanel extends JPanel {
     private JButton ultimateButton;
     private JButton itemButton;
     private JButton escapeButton;
+    private JButton defendButton;
 
     public BattlePanel(Game game, GameFrame gameFrame, BattleManager battle) {
         this.gameFrame = gameFrame;
@@ -160,22 +161,27 @@ public class BattlePanel extends JPanel {
         midPanel.add(logScroll, BorderLayout.CENTER);
         add(midPanel, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new GridLayout(1, 5, 7, 0));
+        // Six choices in one row, so the arena/log keep their original height.
+        JPanel actions = new JPanel(new GridLayout(1, 6, 6, 0));
         actions.setOpaque(false);
         actions.setPreferredSize(new Dimension(700, 45));
         attackButton = new JButton("ATTACK");
         skillButton = new JButton("SKILL");
         ultimateButton = new JButton("ULTIMATE");
+        defendButton = new JButton("DEFEND");
         itemButton = new JButton("USE ITEM");
         escapeButton = new JButton("ESCAPE");
         styleAction(attackButton, true);
         styleAction(skillButton, false);
         styleAction(ultimateButton, false);
+        styleAction(defendButton, false);
         styleAction(itemButton, false);
         styleAction(escapeButton, false);
+        defendButton.setToolTipText("Reduce the next enemy hit by 65% (minimum 1 damage).");
         actions.add(attackButton);
         actions.add(skillButton);
         actions.add(ultimateButton);
+        actions.add(defendButton);
         actions.add(itemButton);
         actions.add(escapeButton);
         add(actions, BorderLayout.SOUTH);
@@ -183,7 +189,7 @@ public class BattlePanel extends JPanel {
 
     private void styleAction(JButton button, boolean primary) {
         GameTheme.styleButton(button, primary);
-        button.setFont(new Font("Monospaced", Font.BOLD, 12));
+        button.setFont(new Font("Monospaced", Font.BOLD, 10));
         button.setPreferredSize(new Dimension(135, 44));
         button.setMaximumSize(new Dimension(135, 44));
     }
@@ -193,6 +199,7 @@ public class BattlePanel extends JPanel {
         skillButton.addActionListener(e -> useSkill());
         ultimateButton.addActionListener(e -> useUltimate());
         itemButton.addActionListener(e -> useItem());
+        defendButton.addActionListener(e -> defend());
         escapeButton.addActionListener(e -> escape());
     }
 
@@ -225,7 +232,8 @@ public class BattlePanel extends JPanel {
             if (damage.find()) {
                 int amount = Integer.parseInt(damage.group(1));
                 if (line.startsWith(enemy + " attacks ")
-                        || line.startsWith(enemy + " uses ")) {
+                        || line.startsWith(enemy + " uses ")
+                        || line.startsWith(enemy + " suffers ")) {
                     arena.queueDamage(true, amount, line.contains(" uses "));
                 } else if (line.startsWith(hero + " attacks ")
                         || line.startsWith(hero + " uses ")) {
@@ -241,6 +249,17 @@ public class BattlePanel extends JPanel {
                 arena.queueStatus(true, "HERO ULTIMATE!");
             } else if (line.startsWith(enemy + " uses ULTIMATE ")) {
                 arena.queueStatus(false, "ENEMY ULTIMATE!");
+            }
+            if (line.contains("is bleeding")) {
+                arena.queueStatus(false, "BLEED!");
+            } else if (line.contains("is burning")) {
+                arena.queueStatus(false, "BURN!");
+            } else if (line.contains("gains FORTIFY")) {
+                arena.queueStatus(true, "FORTIFY!");
+            } else if (line.contains("gains MAGIC WARD")) {
+                arena.queueStatus(true, "MAGIC WARD!");
+            } else if (line.contains("uses DEFEND!")) {
+                arena.queueStatus(true, "DEFEND 65%!");
             }
             if (line.contains("is stunned and misses a turn")) {
                 arena.queueStatus(true, "TURN SKIPPED");
@@ -260,7 +279,12 @@ public class BattlePanel extends JPanel {
         // Charge, MP and Stun must all permit the Ultimate action.
         ultimateButton.setEnabled(enabled && battle.getPlayer().canUseUltimate()
                 && !battle.isPlayerStunned());
-        itemButton.setEnabled(enabled);
+        defendButton.setEnabled(enabled);
+        itemButton.setEnabled(enabled && !battle.isPotionUsedThisTurn());
+        itemButton.setText(battle.isPotionUsedThisTurn() ? "ITEM USED" : "USE ITEM");
+        itemButton.setToolTipText(battle.isPotionUsedThisTurn()
+                ? "Potion already used. Pick your main action."
+                : "One Potion before an action; Bombs and Soul Shards end the turn.");
         escapeButton.setEnabled(enabled && !battle.getMonster().isBoss());
         updateUltimateButtonVisual();
     }
@@ -278,7 +302,7 @@ public class BattlePanel extends JPanel {
 
         if (readyToClick) {
             // Violet + bright gold outline stands out from the gold ATTACK button.
-            ultimateButton.setText("ULTIMATE READY!");
+            ultimateButton.setText("ULT READY!");
             ultimateButton.setBackground(new Color(103, 61, 180));
             ultimateButton.setForeground(new Color(255, 240, 181));
             ultimateButton.setBorder(BorderFactory.createCompoundBorder(
@@ -320,6 +344,10 @@ public class BattlePanel extends JPanel {
 
     private void useUltimate() {
         performAction(() -> battle.playerUseUltimate());
+    }
+
+    private void defend() {
+        performAction(() -> battle.playerDefend());
     }
 
     private void useItem() {
@@ -491,6 +519,7 @@ public class BattlePanel extends JPanel {
         ultimateButton.setEnabled(false);
         itemButton.setEnabled(false);
         escapeButton.setEnabled(false);
+        defendButton.setEnabled(false);
         updateUltimateButtonVisual();
     }
 }

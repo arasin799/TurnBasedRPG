@@ -40,6 +40,16 @@ public class Archer extends Player {
     }
 
     @Override
+    public CombatEffect getSkillCombatEffect() {
+        return CombatEffect.BLEED;
+    }
+
+    @Override
+    public CombatEffect getUltimateCombatEffect() {
+        return CombatEffect.BLEED;
+    }
+
+    @Override
     public String getSkillName() {
         return "Power Shot";
     }

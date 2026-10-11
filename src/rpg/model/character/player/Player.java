@@ -25,6 +25,12 @@ public abstract class Player extends Character {
     private static final int LEVEL_UP_GOLD_PER_LEVEL = 25;
     private int ultimateCharge = 0;
 
+    /** Class-specific status produced by the hero's Skill or Ultimate. */
+    public enum CombatEffect { NONE, FORTIFY, BLEED, BURN, WARD }
+
+    // Reduces one actual incoming hit, including monster Skills and Ultimates.
+    private int nextHitReductionPercent;
+
     private Weapon equippedWeapon;
     private Armor equippedArmor;
 
@@ -104,8 +110,8 @@ public abstract class Player extends Character {
             return -1;
         }
         ultimateCharge = 0;
-        return target.takeSpecialDamage(getAttack(),
-                getUltimateDamageBonus() + getEquippedClassWeaponDamageBonus());
+        return target.takeSpecialDamage(
+                getAttack(), getUltimateDamageBonus() + getEquippedClassWeaponDamageBonus());
     }
 
     public Weapon getEquippedWeapon() {
@@ -182,7 +188,10 @@ public abstract class Player extends Character {
         return totalAttack;
     }
 
-    /** The dedicated class weapon grants +7 extra damage (not extra ATK). */
+    /** Extra TRUE damage for the weapon dedicated to this hero class.
+     *  Dagger is a shared weapon and never receives this class-match bonus.
+     *  Used by Shop/Inventory previews; it does not require already equipping.
+     */
     public int getClassWeaponDamageBonus(Weapon weapon) {
         if (weapon == null) return 0;
         WeaponType type = weapon.getWeaponType();
@@ -208,7 +217,7 @@ public abstract class Player extends Character {
         return getClassWeaponDamageBonus(equippedWeapon);
     }
 
-    /** Apply the class-match bonus after regular defense calculations. */
+    /** The class weapon adds +7 damage AFTER normal defense calculation. */
     protected final int dealWeaponBonusDamage(Character target, int baseDamage) {
         return target == null ? 0
                 : target.takeSpecialDamage(baseDamage, getEquippedClassWeaponDamageBonus());
@@ -229,6 +238,37 @@ public abstract class Player extends Character {
         }
 
         return totalDefense;
+    }
+
+    /** A simple extensible hook: each hero class chooses its own effects. */
+    public CombatEffect getSkillCombatEffect() {
+        return CombatEffect.NONE;
+    }
+
+    public CombatEffect getUltimateCombatEffect() {
+        return CombatEffect.NONE;
+    }
+
+    /** Reduce the next hit; not immune. Stronger protection replaces weaker. */
+    public void protectNextHit(int percent) {
+        int safe = Math.max(0, Math.min(90, percent));
+        nextHitReductionPercent = Math.max(nextHitReductionPercent, safe);
+    }
+
+    public int getNextHitReductionPercent() {
+        return nextHitReductionPercent;
+    }
+
+    public void clearHitReduction() {
+        nextHitReductionPercent = 0;
+    }
+
+    @Override
+    protected int modifyFinalDamage(int damage) {
+        if (nextHitReductionPercent <= 0) return damage;
+        int reduction = nextHitReductionPercent;
+        nextHitReductionPercent = 0; // Consume this guard on the first hit only.
+        return Math.max(1, (int) Math.ceil(damage * (100 - reduction) / 100.0));
     }
 
     // -------------------------
@@ -254,7 +294,6 @@ public abstract class Player extends Character {
             levelUp();
         }
     }
-
 
     private void levelUp() {
 
