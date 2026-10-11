@@ -13,7 +13,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -58,6 +60,8 @@ public class InventoryPanel extends JPanel {
     private final Game game;
     private final GameFrame gameFrame;
     private final Map<String, ImageIcon> icons = new HashMap<>();
+    // UI-only counts: the actual Inventory still stores individual Item objects.
+    private final Map<Class<?>, Integer> displayStackCounts = new HashMap<>();
 
     private final DefaultListModel<Item> itemListModel = new DefaultListModel<>();
     private JList<Item> itemList;
@@ -208,23 +212,60 @@ public class InventoryPanel extends JPanel {
         equipButton.addActionListener(e -> equipSelectedItem());
     }
 
+    /** Weapons and armor are individual equipment; consumables share one UI row per type. */
+    private boolean isStackableForUi(Item item) {
+        return !(item instanceof Weapon) && !(item instanceof Armor);
+    }
+
+    private int getDisplayStackCount(Item item) {
+        return item != null && isStackableForUi(item)
+                ? displayStackCounts.getOrDefault(item.getClass(), 1) : 1;
+    }
+
     public void refreshInventory() {
         Item previousSelection = itemList.getSelectedValue();
         itemListModel.clear();
+        displayStackCounts.clear();
+        Set<Class<?>> shownTypes = new HashSet<>();
+        int totalItems = 0;
+
+        // First item of each consumable class represents the whole stack.
+        // Equipment always has its own row, even if the names are identical.
         for (Item item : game.getPlayer().getInventory().getItems()) {
-            itemListModel.addElement(item);
-        }
-        countLabel.setText(itemListModel.getSize() + " ITEMS");
-        updateEquipmentInfo();
-        // Keep focus after equipping, but do not retain an item that was consumed.
-        if (previousSelection != null) {
-            for (int i = 0; i < itemListModel.size(); i++) {
-                if (itemListModel.get(i) == previousSelection) {
-                    itemList.setSelectedIndex(i);
-                    break;
+            totalItems++;
+            if (isStackableForUi(item)) {
+                Class<?> type = item.getClass();
+                displayStackCounts.put(type, displayStackCounts.getOrDefault(type, 0) + 1);
+                if (shownTypes.add(type)) {
+                    itemListModel.addElement(item);
                 }
+            } else {
+                itemListModel.addElement(item);
             }
         }
+        countLabel.setText(totalItems + " ITEMS");
+        updateEquipmentInfo();
+
+        // After using a potion, the representative object may have been removed.
+        // Select another instance of that SAME consumable type if any remain.
+        if (previousSelection != null) {
+            int fallbackIndex = -1;
+            for (int i = 0; i < itemListModel.size(); i++) {
+                Item visible = itemListModel.get(i);
+                if (visible == previousSelection) {
+                    fallbackIndex = i;
+                    break;
+                }
+                if (isStackableForUi(previousSelection)
+                        && visible.getClass() == previousSelection.getClass()) {
+                    fallbackIndex = i;
+                }
+            }
+            if (fallbackIndex >= 0) {
+                itemList.setSelectedIndex(fallbackIndex);
+            }
+        }
+        itemList.repaint();
         updateSelectedItem();
     }
 
@@ -244,7 +285,9 @@ public class InventoryPanel extends JPanel {
         }
 
         Player player = game.getPlayer();
-        selectedItemName.setText(item.getName().toUpperCase());
+        int stackCount = getDisplayStackCount(item);
+        selectedItemName.setText(item.getName().toUpperCase()
+                + (stackCount > 1 ? " x" + stackCount : ""));
         selectedItemCategory.setText(item instanceof Weapon
                 && player.getClassWeaponDamageBonus((Weapon) item) > 0
                 ? "WEAPON / +7 CLASS EXTRA DMG" : itemCategory(item));
@@ -463,7 +506,9 @@ public class InventoryPanel extends JPanel {
             boolean equipped = value == player.getEquippedWeapon()
                     || value == player.getEquippedArmor();
             setBackground(isSelected ? HIGHLIGHT : INNER);
-            itemName.setText(value.getName());
+            int stackCount = getDisplayStackCount(value);
+            itemName.setText(value.getName()
+                    + (stackCount > 1 ? " x" + stackCount : ""));
             itemName.setForeground(isSelected ? GameTheme.GOLD : GameTheme.TEXT);
             itemMeta.setText(equipped ? "EQUIPPED" : itemCategory(value).split("  /  ")[0]);
             itemMeta.setForeground(equipped ? SUCCESS : GameTheme.MUTED);
