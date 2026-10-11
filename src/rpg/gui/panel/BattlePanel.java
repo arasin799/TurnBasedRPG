@@ -32,10 +32,6 @@ import rpg.model.character.player.Player;
 import rpg.model.item.BattleUsable;
 import rpg.model.item.Item;
 import rpg.model.item.Usable;
-import rpg.model.item.Potion;
-import rpg.model.item.HealthPotion;
-import rpg.model.item.SmallHealthPotion;
-import rpg.model.item.SoulShard;
 
 /** Styled battle screen. Combat rules continue to live only in BattleManager. */
 public class BattlePanel extends JPanel {
@@ -348,14 +344,14 @@ public class BattlePanel extends JPanel {
                     "Use Item", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        Item selected = chooseItemWithDetails(player, usableItems);
+        Item selected = chooseItemWithDetails(usableItems);
         if (selected != null) {
             performAction(() -> battle.playerUseItem(selected));
         }
     }
 
-    /** Preview each item's effect and stock before the player spends a turn. */
-    private Item chooseItemWithDetails(Player player, ArrayList<Item> items) {
+    /** Show a short item description while retaining UI-only stack counts. */
+    private Item chooseItemWithDetails(ArrayList<Item> items) {
         Map<String, Item> firstCopy = new LinkedHashMap<>();
         Map<String, Integer> quantities = new LinkedHashMap<>();
         for (Item item : items) {
@@ -369,7 +365,7 @@ public class BattlePanel extends JPanel {
         }
         chooser.setFont(new Font("Monospaced", Font.BOLD, 13));
 
-        JTextArea description = new JTextArea(5, 32);
+        JTextArea description = new JTextArea(2, 32);
         description.setEditable(false);
         description.setFocusable(false);
         description.setLineWrap(true);
@@ -386,8 +382,7 @@ public class BattlePanel extends JPanel {
             int index = chooser.getSelectedIndex();
             if (index >= 0) {
                 String name = names.get(index);
-                description.setText(describeBattleItem(firstCopy.get(name),
-                        quantities.get(name), player));
+                description.setText(firstCopy.get(name).getDescription());
                 description.setCaretPosition(0);
             }
         };
@@ -395,7 +390,7 @@ public class BattlePanel extends JPanel {
         update.run();
 
         JPanel dialog = new JPanel(new BorderLayout(0, 10));
-        dialog.setPreferredSize(new Dimension(420, 165));
+        dialog.setPreferredSize(new Dimension(420, 95));
         dialog.add(chooser, BorderLayout.NORTH);
         dialog.add(description, BorderLayout.CENTER);
 
@@ -404,31 +399,6 @@ public class BattlePanel extends JPanel {
         int index = chooser.getSelectedIndex();
         return answer == JOptionPane.OK_OPTION && index >= 0
                 ? firstCopy.get(names.get(index)) : null;
-    }
-
-    private String describeBattleItem(Item item, int amount, Player player) {
-        String info = item.getName() + "  (Owned: " + amount + ")\n"
-                + item.getDescription() + "\n";
-        if (item instanceof Potion) {
-            boolean health = item instanceof HealthPotion
-                    || item instanceof SmallHealthPotion;
-            int current = health ? player.getHp() : player.getMp();
-            int maximum = health ? player.getMaxHp() : player.getMaxMp();
-            int restore = ((Potion) item).getRestoreAmount();
-            int actual = Math.min(restore, maximum - current);
-            info += (health ? "HP " : "MP ") + current + "/" + maximum
-                    + " | Actual restore: +" + actual + "\n";
-            if (actual == 0) info += "Already full - item will not be consumed.";
-        } else if (item instanceof SoulShard) {
-            info += "ULT " + player.getUltimateCharge() + "/"
-                    + player.getMaxUltimateCharge() + " | Adds +1 charge\n";
-            if (player.isUltimateReady()) {
-                info += "Charge full - item will not be consumed.";
-            }
-        } else if (item instanceof BattleUsable) {
-            info += "Targets the enemy. Uses one battle turn.";
-        }
-        return info;
     }
 
     private void escape() {
