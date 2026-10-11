@@ -179,6 +179,49 @@ public final class GameIntegrationSmokeTest {
         p.gainGold(250);  // ensure enough Gold to buy again after a sale
         shop.buyItem(p, sword);
         require(shop.alreadyOwnsWeapon(p, sword), "re-buy after selling failed");
+
+        // Shield limits use ArmorType, independently of weapon purchases.
+        p.gainGold(1000);
+        Armor wooden = (Armor) storeItem(shop, "Wooden Shield");
+        Armor iron = (Armor) storeItem(shop, "Iron Shield");
+        require(!shop.alreadyOwnsArmor(p, wooden), "Wooden Shield falsely marked owned");
+        shop.buyItem(p, wooden);
+        require(shop.alreadyOwnsArmor(p, wooden), "Wooden Shield ownership not detected");
+        int goldBeforeDuplicate = p.getGold();
+        int itemsBeforeDuplicate = p.getInventory().getItemCount();
+        try {
+            shop.buyItem(p, wooden);
+            throw new AssertionError("duplicate Wooden Shield purchase was allowed");
+        } catch (IllegalStateException expected) {
+            assertions++;
+        }
+        require(p.getGold() == goldBeforeDuplicate, "duplicate shield purchase spent Gold");
+        require(p.getInventory().getItemCount() == itemsBeforeDuplicate,
+                "duplicate shield purchase added an item");
+
+        // Each shield type can be owned and equipped at the same time.
+        shop.buyItem(p, iron);
+        require(shop.alreadyOwnsArmor(p, iron), "Iron Shield ownership not detected");
+        Armor ownedWooden = null;
+        Armor ownedIron = null;
+        for (Item item : p.getInventory().getItems()) {
+            if (item instanceof Armor) {
+                Armor armor = (Armor) item;
+                if (armor.getArmorType() == wooden.getArmorType()) ownedWooden = armor;
+                if (armor.getArmorType() == iron.getArmorType()) ownedIron = armor;
+            }
+        }
+        require(ownedWooden != null && ownedIron != null, "two shield types not owned");
+        require(p.equipArmor(ownedWooden) && p.equipArmor(ownedIron),
+                "two different shields should be equippable together");
+        require(!shop.sellItem(p, ownedWooden), "equipped Wooden Shield was sold");
+        require(p.unequipArmor(ownedWooden), "could not unequip Wooden Shield");
+        require(shop.sellItem(p, ownedWooden), "unequipped Wooden Shield could not be sold");
+        require(!shop.alreadyOwnsArmor(p, wooden), "sold shield still marked owned");
+        require(shop.alreadyOwnsArmor(p, iron), "selling Wooden Shield removed Iron Shield ownership");
+        shop.buyItem(p, wooden);
+        require(shop.alreadyOwnsArmor(p, wooden), "re-buy of Wooden Shield failed");
+        require(p.isEquipped(ownedIron), "Iron Shield was unequipped by shield sale");
     }
 
     private static void testSoulShard() {

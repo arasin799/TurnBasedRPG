@@ -142,6 +142,18 @@ public class Shop {
         return false;
     }
 
+    /** At most one armor item of each ArmorType may be owned at a time. */
+    public boolean alreadyOwnsArmor(Player player, Armor armor) {
+        if (player == null || armor == null) return false;
+        for (Item owned : player.getInventory().getItems()) {
+            if (owned instanceof Armor
+                    && ((Armor) owned).getArmorType() == armor.getArmorType()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // -------------------------
     // Buy
     // -------------------------
@@ -157,7 +169,8 @@ public class Shop {
             return;
         }
 
-        if (item instanceof Weapon && alreadyOwnsWeapon(player, (Weapon) item)) {
+        if ((item instanceof Weapon && alreadyOwnsWeapon(player, (Weapon) item))
+                || (item instanceof Armor && alreadyOwnsArmor(player, (Armor) item))) {
             throw new IllegalStateException(
                     "You already own one " + item.getName()
                     + ". Sell it first if you want to buy another.");

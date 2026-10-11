@@ -335,10 +335,13 @@ public class ShopPanel extends JPanel {
         itemInfoArea.setText(info.toString());
         itemInfoArea.setCaretPosition(0);
 
-        boolean alreadyOwned = buying && item instanceof Weapon
-                && shop.alreadyOwnsWeapon(player, (Weapon) item);
+        boolean alreadyOwned = buying
+                && ((item instanceof Weapon && shop.alreadyOwnsWeapon(player, (Weapon) item))
+                || (item instanceof Armor && shop.alreadyOwnsArmor(player, (Armor) item)));
         if (alreadyOwned) {
-            itemInfoArea.append("\nALREADY OWNED: ONE WEAPON PER TYPE");
+            itemInfoArea.append(item instanceof Weapon
+                    ? "\nALREADY OWNED: ONE WEAPON PER TYPE"
+                    : "\nALREADY OWNED: ONE ARMOR PER TYPE");
         }
         buyButton.setEnabled(buying && !alreadyOwned
                 && player.getGold() >= item.getBuyPrice());
@@ -483,8 +486,10 @@ public class ShopPanel extends JPanel {
             nameLabel.setForeground(isSelected ? GameTheme.GOLD : GameTheme.TEXT);
             boolean equipped = game.getPlayer().isEquipped(value);
             if (buying) {
-                boolean owned = value instanceof Weapon
-                        && shop.alreadyOwnsWeapon(game.getPlayer(), (Weapon) value);
+                boolean owned = (value instanceof Weapon
+                        && shop.alreadyOwnsWeapon(game.getPlayer(), (Weapon) value))
+                        || (value instanceof Armor
+                        && shop.alreadyOwnsArmor(game.getPlayer(), (Armor) value));
                 priceLabel.setText(owned ? "OWNED / MAX 1" : "BUY  "
                         + value.getBuyPrice() + " GOLD");
                 priceLabel.setForeground(owned ? SUCCESS
