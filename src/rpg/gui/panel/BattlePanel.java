@@ -275,7 +275,9 @@ public class BattlePanel extends JPanel {
 
     private void setActionButtonsEnabled(boolean enabled) {
         attackButton.setEnabled(enabled);
-        skillButton.setEnabled(enabled);
+        // Disable Skill when MP is insufficient; restore it after a Mana Potion.
+        Player player = battle.getPlayer();
+        skillButton.setEnabled(enabled && player.getMp() >= player.getSkillMpCost());
         // Charge, MP and Stun must all permit the Ultimate action.
         ultimateButton.setEnabled(enabled && battle.getPlayer().canUseUltimate()
                 && !battle.isPlayerStunned());
@@ -494,8 +496,11 @@ public class BattlePanel extends JPanel {
                     + "/" + monster.getUltimateChargeRequired());
         }
         skillButton.setText(player.getSkillName().toUpperCase());
-        skillButton.setToolTipText("Requires " + player.getSkillMpCost()
-                + " MP to use " + player.getSkillName() + ".");
+        int skillMpCost = player.getSkillMpCost();
+        int missingMp = Math.max(0, skillMpCost - player.getMp());
+        skillButton.setToolTipText("Requires " + skillMpCost + " MP to use "
+                + player.getSkillName() + "."
+                + (missingMp > 0 ? " Need " + missingMp + " more MP." : ""));
         updateUltimateButtonVisual();
         if (monster.isBoss()) {
             escapeButton.setEnabled(false);
