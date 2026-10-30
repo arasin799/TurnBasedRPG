@@ -81,6 +81,16 @@ public class Game {
         }
     }
 
+    /** Display an enemy's initial stats without starting a battle.
+     *  Actual Gold is rolled again when the player starts Battle.
+     */
+    public Monster previewMonsterForStage(int stageIndex) {
+        if (stageIndex < 0 || stageIndex >= FINAL_STAGE) {
+            throw new IllegalArgumentException("Invalid stage: " + stageIndex);
+        }
+        return createMonsterForStage(stageIndex);
+    }
+
     public BattleManager getCurrentBattle() {
         return currentBattle;
     }

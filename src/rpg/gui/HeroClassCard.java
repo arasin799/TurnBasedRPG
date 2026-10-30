@@ -169,7 +169,7 @@ public class HeroClassCard extends JButton {
         Color outline = new Color(8, 13, 27);
         Color skin = new Color(232, 177, 123);
         Color brown = new Color(111, 70, 52);
-        Color shadow = new Color(43, 54, 83);
+        //Color shadow = new Color(43, 54, 83);
 
         // Feet and boots common to all classes.
         tile(g, x, y, s, 5, 13, 3, 2, outline);
